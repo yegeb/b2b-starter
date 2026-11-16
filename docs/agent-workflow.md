@@ -61,10 +61,14 @@ Run this command once in each clone. Linked worktrees share this setting:
 git config --local core.hooksPath .githooks
 ```
 
-The hooks require Python 3. They block commits to `main`, pushes targeting
-`main`, invalid commit subjects, known AI co-author trailers, and staging
-environment or private key files. Hooks are local safeguards. They can be
-bypassed and do not replace GitHub branch protection or a secret scanner.
+The hooks require Python 3. They block commits and pushes to `main`, branch
+deletion, non-fast-forward branch pushes, invalid commit subjects, known AI
+co-author trailers, and environment or private key files in staged changes or
+newly pushed commits. A missing remote commit also blocks the push: fetch first.
+Example and template environment files are allowed, so never put secrets in them.
+Hooks are local safeguards. They can be bypassed and do not replace GitHub
+branch protection or a secret scanner. They cannot prevent agents from sharing
+secrets in logs, issue descriptions, network requests, or other channels.
 Do not disable them to complete an agent task.
 
 ## Data and cloud safeguards
