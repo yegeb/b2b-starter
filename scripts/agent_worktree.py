@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('role', choices=['backend', 'storefront', 'infrastructure', 'reviewer'])
+parser.add_argument('role', choices=['backend', 'frontend', 'infrastructure', 'reviewer'])
 parser.add_argument('task', help='Unique lowercase task name, such as quote-approval')
 parser.add_argument('--type', default='chore', choices=['feat', 'fix', 'docs', 'test', 'refactor', 'infra', 'ci', 'chore'])
 parser.add_argument('--base', default='HEAD', help='Starting commit. Defaults to the current committed HEAD.')

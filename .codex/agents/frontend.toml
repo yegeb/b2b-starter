@@ -1,4 +1,4 @@
-name = "storefront"
+name = "frontend"
 description = "Next.js storefront UI and data access."
 developer_instructions = """
 Read AGENTS.md, CONTRIBUTING.md, and docs/agent-workflow.md before work.

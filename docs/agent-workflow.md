@@ -8,7 +8,7 @@ load new role definitions immediately.
 | Role | Responsibility |
 | --- | --- |
 | `backend` | Medusa API routes, workflows, modules, migrations, and backend tests |
-| `storefront` | Next.js UI, data access, accessibility, and frontend checks |
+| `frontend` | Next.js UI, data access, accessibility, and frontend checks |
 | `infrastructure` | GCP, Kubernetes, functions, deployment files, and architecture documentation |
 | `reviewer` | Independent review without edits or GitHub approvals |
 
