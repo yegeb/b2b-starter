@@ -55,6 +55,8 @@ elif mode == 'commit-msg':
     subject = message.splitlines()[0] if message else ''
     if not re.fullmatch(r'(feat|fix|docs|test|refactor|infra|ci|chore)(\([a-z0-9-]+\))?!?: .+', subject):
         fail('Use type(scope): description. Scope is optional.')
+    if not re.search(r'(?<![\w/])#[1-9][0-9]*\b', message):
+        fail('Reference the existing GitHub issue, for example Refs: #123.')
     for line in message.splitlines():
         if re.match(r'(?i)^co-authored-by:', line) and re.search(r'(?i)\b(copilot|codex|claude|openai|anthropic|chatgpt|gemini)\b|\[bot\]', line):
             fail('Remove the AI co-author trailer. Preserve genuine human attribution.')

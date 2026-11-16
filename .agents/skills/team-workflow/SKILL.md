@@ -10,6 +10,9 @@ messages, pull requests, and human review. Read it before creating or updating
 an issue, branch, commit, or pull request. Work on a topic branch and do not
 push directly to `main`.
 
+Find or create a focused GitHub issue before starting implementation. Reference
+that issue in each related commit and pull request. Do not invent issue numbers.
+
 For delegated work, follow `docs/agent-workflow.md`. Assign each agent a separate
 branch and worktree. Read `.agents/skills/asd-ste100/SKILL.md` for technical writing.
 

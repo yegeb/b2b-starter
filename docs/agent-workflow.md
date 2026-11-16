@@ -65,6 +65,8 @@ The hooks require Python 3. They block commits and pushes to `main`, branch
 deletion, non-fast-forward branch pushes, invalid commit subjects, known AI
 co-author trailers, and environment or private key files in staged changes or
 newly pushed commits. A missing remote commit also blocks the push: fetch first.
+Commit messages must reference an issue number. The hook cannot check whether
+the issue exists or whether it covers the work. Create or find the issue first.
 Example and template environment files are allowed, so never put secrets in them.
 Hooks are local safeguards. They can be bypassed and do not replace GitHub
 branch protection or a secret scanner. They cannot prevent agents from sharing

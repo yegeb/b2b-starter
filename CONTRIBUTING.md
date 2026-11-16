@@ -6,7 +6,7 @@ For agent roles, separate worktrees, local Git hooks, and data safeguards, read
 
 ## Issues
 
-- Search existing issues before opening one. Keep each issue focused on one
+- Before starting a change, find or create a GitHub issue for it. Keep each issue focused on one
   problem or task, with a short, descriptive title, such as `Fix quote approval
   error` or `Add product image processing`.
 - Choose the bug report or feature request template when applicable. For other
@@ -43,6 +43,8 @@ Use a concise Conventional Commit subject: `type(scope): description`. The
 scope is optional; use the branch prefixes above as types. Write the description
 in the imperative, for example `fix(api): validate company membership` or
 `docs: explain deployment setup`. Keep each commit focused on a coherent change.
+Reference its issue in the subject or body, for example `Refs: #123`. The issue
+must exist before the commit. Do not use a placeholder issue number.
 
 Use the human contributor's configured Git identity; do not invent an identity
 or add AI tools or agents as authors, co-authors, or contributors. Keep genuine
