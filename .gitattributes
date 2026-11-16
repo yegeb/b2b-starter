@@ -1,0 +1,3 @@
+# Keep executable scripts usable after checkout on every platform.
+.githooks/* text eol=lf
+scripts/*.py text eol=lf
