@@ -2,6 +2,20 @@
 
 Medusa B2B Starter: a pnpm + Turborepo monorepo with a Medusa v2 backend (`apps/backend`) and a Next.js 15 storefront (`apps/storefront`). Adds companies, employees, spending limits, approvals, and quotes on top of Medusa commerce.
 
+## Team Workflow
+
+Follow `CONTRIBUTING.md` for all repository changes. Before creating a branch,
+commit, issue, or pull request, read `.agents/skills/team-workflow/SKILL.md`. Do not
+push directly to `main` or add AI agents or tools as contributors or co-authors.
+
+## Agent Coordination
+
+Read `docs/agent-workflow.md` before parallel work. Each agent must use a separate
+Git worktree and branch. Read `.agents/skills/asd-ste100/SKILL.md` for technical
+writing. Follow its strict mode for instructions and prose mode for explanations.
+Never delete or reset shared databases, Redis data, volumes, or cloud resources
+without an explicit user request for that action and target.
+
 ## Before You Start
 
 1. **Package manager**: read `packageManager` in the root `package.json` (`pnpm@9.15.0`), then confirm with the lockfile (`pnpm-lock.yaml`). Never use npm or yarn here.
