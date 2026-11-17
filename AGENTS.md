@@ -169,6 +169,9 @@ It exposes deployments, build/runtime logs, environment variables, and store dat
 
 - `node_modules/`: read the package docs there, but never edit installed packages.
 - `.env`, `.env.local`: never commit or print values. Edit `.env.template` for new variables.
+- Keep existing work intact. Inspect the worktree before editing. Never discard changes without explicit authorization.
+- The local Git pre-commit hook requires Gitleaks. Resolve scan findings without printing secrets.
+- Codex hooks check `apply_patch` edits and selected shell commands. Read `docs/agent-workflow.md` for their scope and limitations.
 - `pnpm-lock.yaml`: only change it via `pnpm install`/`pnpm add`.
 - Existing migration files in `src/modules/*/migrations/`: generate new ones instead of editing.
 - `.medusa/`, `.next/`, `.turbo/`: build output.

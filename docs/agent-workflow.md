@@ -18,15 +18,19 @@ agent for a small task. Serialize changes to shared interfaces and the lockfile.
 
 ## Separate worktrees
 
-Create one branch and worktree for each agent task:
+Create one branch and worktree for each agent task. First fetch the remote
+`main` branch. Confirm the selected base is the updated `main` commit. The
+example uses `origin`. Replace it with the remote for the target repository.
 
 ```sh
-python3 scripts/agent_worktree.py backend quote-approval --type feat
+git fetch origin main
+python3 scripts/agent_worktree.py backend quote-approval --type feat --base origin/main
 ```
 
 The script creates `.worktrees/backend-quote-approval` and
-`feat/backend-quote-approval`. It starts from committed `HEAD`. Use `--base`
-to select another commit. Commit shared setup before creating worktrees.
+`feat/backend-quote-approval`. Without `--base`, it starts from committed `HEAD`.
+Do not use the default unless `HEAD` is the updated `main` commit. Merge any
+shared setup into `main` before creating task branches that require it.
 The script refuses existing branch names and paths through Git's checks.
 
 Start the agent in that directory. Include the absolute worktree path and
@@ -61,17 +65,60 @@ Run this command once in each clone. Linked worktrees share this setting:
 git config --local core.hooksPath .githooks
 ```
 
-The hooks require Python 3. They block commits and pushes to `main`, branch
-deletion, non-fast-forward branch pushes, invalid commit subjects, known AI
-co-author trailers, and environment or private key files in staged changes or
-newly pushed commits. A missing remote commit also blocks the push: fetch first.
+The hooks require Python 3 and Gitleaks 8.19 or later. The pre-commit hook scans
+staged changes with Gitleaks. It blocks the commit if
+the scan fails or Gitleaks is unavailable. Review findings without printing
+secrets. A scan cannot detect every secret, including secrets in some binary
+files. Templates must not contain secrets.
+
+The Git hooks block commits on local `main` and pushes to remote `main`. They
+also block remote branch deletion and non-fast-forward branch pushes. The hooks
+check commit messages for invalid subjects and known AI co-author trailers.
+They check staged changes and newly pushed commits for environment and private
+key filenames. A missing remote commit also blocks the push: fetch first.
 Commit messages must reference an issue number. The hook cannot check whether
 the issue exists or whether it covers the work. Create or find the issue first.
 Example and template environment files are allowed, so never put secrets in them.
 Hooks are local safeguards. They can be bypassed and do not replace GitHub
-branch protection or a secret scanner. They cannot prevent agents from sharing
+branch protection or server-side secret scanning. They cannot prevent agents from sharing
 secrets in logs, issue descriptions, network requests, or other channels.
 Do not disable them to complete an agent task.
+
+## Codex hooks
+
+The project also defines a Codex `PreToolUse` hook in `.codex/hooks.json`.
+It checks shell commands before Codex runs them. It blocks recognizable SQL
+deletes, database drops and resets, Redis flushes, and volume deletion. It also
+blocks common cloud and Kubernetes deletion commands and Terraform destruction.
+It also blocks recognizable Git commands that discard work, such as hard resets
+and forced cleans. Inspect the worktree before editing or discarding changes.
+The hook blocks these commands even when the user authorizes the operation.
+Ask the user to perform an authorized operation on the confirmed target.
+
+A second hook checks `apply_patch` edits. It protects environment files except
+example and template files. It also protects TypeScript migrations committed in
+`HEAD` under `apps/backend/src/modules/*/migrations/`. New migration files remain
+editable until committed. It does not inspect shell commands that edit files.
+
+Trust the project in Codex. Review and trust the hook in `/hooks` in the CLI,
+or use **Settings > Hooks** in the Codex app. Review changed hooks again when
+Codex requests it. Start a new session if the current session does not load the
+hook. Ask Codex to run `printf 'DROP DATABASE example'` as a shell command.
+The hook should block it. The command is harmless if the hook does not run.
+A hook that is not loaded or trusted cannot block commands. Hook errors or
+timeouts may also allow a command to run. See the
+[Codex hooks documentation](https://learn.chatgpt.com/docs/hooks).
+
+Run the Codex hook regression checks with:
+
+```sh
+python3 -m unittest discover -s tests -p 'test_agent_guards.py'
+```
+
+The command hook checks text, not the actions of a program after it starts.
+Scripts, indirect commands, other tools, and unrecognized syntax can bypass its
+checks. It can also block harmless text that matches a rule. It does not check
+MCP calls. It does not replace database grants, IAM, or environment isolation.
 
 ## Data and cloud safeguards
 
@@ -87,7 +134,3 @@ Do not disable them to complete an agent task.
   creation rights. Give those rights only on a disposable local test instance.
 - Restrict cloud access to the permissions needed for the task. Review a plan
   before infrastructure changes. Deployments and deletions need user authorization.
-
-Git hooks cannot intercept arbitrary SQL or cloud API calls. These instructions
-guide agents. Database grants, IAM, and environment isolation enforce access.
-This setup does not modify a live database or cloud account.

@@ -1,6 +1,6 @@
 ## Summary
 
-<!-- What changed and why? Link a related issue if applicable. -->
+<!-- What changed and why? Link each relevant issue. Use Closes #123 when this PR completes the issue. -->
 
 ## Validation
 

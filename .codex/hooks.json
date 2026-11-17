@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/destructive_commands.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking for destructive data commands"
+          }
+        ]
+      },
+      {
+        "matcher": "^apply_patch$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/protect_files.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking protected file edits"
+          }
+        ]
+      }
+    ]
+  }
+}
