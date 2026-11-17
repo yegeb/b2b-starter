@@ -55,3 +55,12 @@ yarn-error.log*
 ehthumbs.db
 Thumbs.db
 **/.DS_Store
+# Isolated agent worktrees
+.worktrees/
+
+# Ignore all environment files except safe templates.
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
