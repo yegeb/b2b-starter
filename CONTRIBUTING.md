@@ -21,8 +21,9 @@ For agent roles, separate worktrees, local Git hooks, and data safeguards, read
 
 ## Branches
 
-Make changes on a branch created from an up-to-date `main`. Use a lowercase,
-hyphenated name with a prefix describing the work:
+Make changes on a branch created from an up-to-date `main`. Fetch the target
+repository's `main` and verify the starting commit before creating the branch.
+Use a lowercase, hyphenated name with a prefix describing the work:
 
 | Prefix | Use |
 | --- | --- |
@@ -61,7 +62,9 @@ human and upstream attribution intact.
 4. Request review from your partner. The author must not approve their own
    change; address feedback and resolve conversations before merging.
 5. Merge after the other person approves and the required checks, if configured,
-   pass. Delete the branch after merging when it is no longer needed.
+   pass. Delete the topic branch after merging when it is no longer needed.
+   The local pre-push hook blocks remote branch deletion. Use the repository
+   hosting interface for remote topic branch deletion.
 
 Both team members must have write access to review and approve each other's
 pull requests. Repository administrators should configure `main` to require a

@@ -7,6 +7,8 @@ Medusa B2B Starter: a pnpm + Turborepo monorepo with a Medusa v2 backend (`apps/
 Follow `CONTRIBUTING.md` for all repository changes. Before creating a branch,
 commit, issue, or pull request, read `.agents/skills/team-workflow/SKILL.md`. Do not
 push directly to `main` or add AI agents or tools as contributors or co-authors.
+After implementation, read `.agents/skills/verify-changes/SKILL.md`. Follow it
+before reporting completion or preparing a pull request.
 
 ## Agent Coordination
 
@@ -169,6 +171,9 @@ It exposes deployments, build/runtime logs, environment variables, and store dat
 
 - `node_modules/`: read the package docs there, but never edit installed packages.
 - `.env`, `.env.local`: never commit or print values. Edit `.env.template` for new variables.
+- Keep existing work intact. Inspect the worktree before editing. Never discard changes without explicit authorization.
+- The local Git pre-commit hook requires Gitleaks. Resolve scan findings without printing secrets.
+- Codex hooks check `apply_patch` edits and selected shell commands. Read `docs/agent-workflow.md` for their scope and limitations.
 - `pnpm-lock.yaml`: only change it via `pnpm install`/`pnpm add`.
 - Existing migration files in `src/modules/*/migrations/`: generate new ones instead of editing.
 - `.medusa/`, `.next/`, `.turbo/`: build output.

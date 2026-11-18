@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Local Git checks. Remote branch protection remains required."""
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -50,6 +51,12 @@ elif mode == 'pre-commit':
         fail('Create a topic branch before committing.')
     files = git('diff', '--cached', '--name-only', '--diff-filter=ACMR', '-z')
     check_files(files)
+    scanner = shutil.which('gitleaks')
+    if not scanner:
+        fail('Gitleaks is unavailable. Ask the user to provide it before committing.')
+    result = subprocess.run([scanner, 'git', '--staged', '--redact', '--no-banner'])
+    if result.returncode != 0:
+        fail('Gitleaks found a secret or could not complete the scan. Review its output.')
 elif mode == 'commit-msg':
     message = Path(sys.argv[2]).read_text()
     subject = message.splitlines()[0] if message else ''
