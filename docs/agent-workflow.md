@@ -100,6 +100,10 @@ example and template files. It also protects TypeScript migrations committed in
 `HEAD` under `apps/backend/src/modules/*/migrations/`. New migration files remain
 editable until committed. It does not inspect shell commands that edit files.
 
+After a root session compacts, a `SessionStart` hook adds the current Git branch
+and worktree status to the context. The status can include filenames. It does
+not include file contents or explain the task. Treat the status as a snapshot.
+
 Trust the project in Codex. Review and trust the hook in `/hooks` in the CLI,
 or use **Settings > Hooks** in the Codex app. Review changed hooks again when
 Codex requests it. Start a new session if the current session does not load the
