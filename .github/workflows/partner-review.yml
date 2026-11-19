@@ -1,0 +1,40 @@
+name: Assign PR author and request partner review
+
+on:
+  pull_request_target:
+    types: [opened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign-author:
+    if: github.event.action == 'opened' && github.event.pull_request.user.login == 'yegeb'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign the pull request to yegeb
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh api --method POST \
+            "repos/${REPOSITORY}/issues/${PR_NUMBER}/assignees" \
+            -f 'assignees[]=yegeb' --silent
+  request-review:
+    if: >
+      !github.event.pull_request.draft &&
+      (github.event.pull_request.user.login == 'yegeb' ||
+       github.event.pull_request.user.login == 'borayilmazer')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request review from the other partner
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REVIEWER: ${{ github.event.pull_request.user.login == 'yegeb' && 'borayilmazer' || 'yegeb' }}
+        run: |
+          gh api --method POST \
+            "repos/${REPOSITORY}/pulls/${PR_NUMBER}/requested_reviewers" \
+            -f "reviewers[]=${REVIEWER}" --silent

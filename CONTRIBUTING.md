@@ -19,6 +19,31 @@ For agent roles, separate worktrees, local Git hooks, and data safeguards, read
   as `#123`. Close an issue when the work is complete or explain why it will
   not be pursued.
 
+## Tracking work
+
+- Use a parent issue for a feature or project with multiple outcomes. State the
+  shared goal and how to verify completion.
+- Create a sub-issue for each independently deliverable workstream. Use a
+  checklist for steps that belong to one deliverable. Split a step into a
+  sub-issue if it needs its own owner, PR, or acceptance check.
+- Link dependencies across issues. For CMPE 48A, include the roadmap task IDs
+  and link the owning brief. Use the release sequence to resolve task order.
+- Use labels to identify the project and area. Use milestones for delivery gates.
+  Set these on issues when creating or triaging them. Close a milestone after
+  verifying its delivery gate and completing its assigned work.
+- Link the issues a PR completes with GitHub's Development sidebar or closing
+  keywords. GitHub closes those issues when the PR merges to the default branch.
+  Use a plain issue reference when a PR delivers only part of an issue.
+- The PR tracking workflow adds `cmpe-48a` and `area: ...` labels from linked
+  issues in this repository. It fills an empty PR milestone when all linked
+  issues in this repository share the same open milestone. It preserves
+  existing labels and milestones. Check the PR metadata after changing links.
+- When the team uses a GitHub Project, add issues and keep their status current.
+  Configure the board's built-in workflows for status changes where possible.
+- Keep branches and PRs focused on a deliverable. Use separate commits for
+  changes a reviewer can assess independently. Reference the owning issue in
+  each commit.
+
 ## Branches
 
 Make changes on a branch created from an up-to-date `main`. Fetch the target
@@ -54,13 +79,18 @@ human and upstream attribution intact.
 ## Pull requests
 
 1. Push your branch and open a pull request targeting this fork's `main`.
+   The workflow assigns PRs authored by `yegeb` to `yegeb` when they open.
 2. Use a descriptive title, preferably in the commit format, and complete the
    pull request template. Mention relevant issues and any changes needed to
    configuration or deployment.
 3. Run appropriate checks for the change and report what you ran or why a check
    could not run. Keep secrets and generated files out of the pull request.
-4. Request review from your partner. The author must not approve their own
-   change; address feedback and resolve conversations before merging.
+4. Check the reviewer when the PR is ready. The workflow requests
+   `borayilmazer` for PRs by `yegeb` and `yegeb` for PRs by `borayilmazer`.
+   For drafts, it requests review when the PR becomes ready. Request your
+   partner manually if the workflow does not add a reviewer. The author must
+   not approve their own change. Address feedback and resolve conversations
+   before merging.
 5. Merge after the other person approves and the required checks, if configured,
    pass. Delete the topic branch after merging when it is no longer needed.
    The local pre-push hook blocks remote branch deletion. Use the repository
