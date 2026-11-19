@@ -9,15 +9,19 @@ permissions:
 
 jobs:
   request-review:
-    if: github.event.pull_request.user.login == 'yegeb' && !github.event.pull_request.draft
+    if: >
+      !github.event.pull_request.draft &&
+      (github.event.pull_request.user.login == 'yegeb' ||
+       github.event.pull_request.user.login == 'borayilmazer')
     runs-on: ubuntu-latest
     steps:
-      - name: Request review from borayilmazer
+      - name: Request review from the other partner
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          REVIEWER: ${{ github.event.pull_request.user.login == 'yegeb' && 'borayilmazer' || 'yegeb' }}
         run: |
           gh api --method POST \
             "repos/${REPOSITORY}/pulls/${PR_NUMBER}/requested_reviewers" \
-            -f 'reviewers[]=borayilmazer' --silent
+            -f "reviewers[]=${REVIEWER}" --silent
