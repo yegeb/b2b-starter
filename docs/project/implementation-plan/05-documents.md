@@ -1,0 +1,15 @@
+# 05 · Quote snapshots, PDF function and download
+
+**Assignment.** Backend owns snapshot and access decisions. Frontend owns buyer-visible state. Start with the quote trace, E2 and architecture §2.1. The PDF must reflect what the merchant sent, even after the draft order changes.
+
+**Proposed interface.** At merchant send, record an immutable reviewed snapshot with a revision, event ID and currency. Include buyer-visible descriptions, quantities, prices, tax, shipping and total from the same preview. Exclude internal notes. Keep one document per logical revision. The function receives the authorized snapshot and writes a deterministic private object. The API checks the requesting actor before serving bytes. This avoids requiring the function to connect to PostgreSQL.
+
+| ID · owner | Depends on | Task and acceptance evidence |
+| --- | --- | --- |
+| Q1 · Backend | A3, A4, E2 | Define which status transitions allow a send. Save the snapshot and publication intent consistently. Treat a repeated request for the same send as the same revision. Test a changed quantity/price and a retry. Compare the frozen fields with the merchant-visible preview. |
+| Q2 · Backend | Q1, E4 | Implement the second-generation PDF function and create the private object once per revision. Use object-generation preconditions and validate metadata on replay. Parse the resulting PDF. Assert quote reference, currency, line quantities and total match the fixture. An older replay cannot overwrite a newer revision. |
+| Q3 · Backend | Q1, Q2 | Add owner-scoped Store and merchant-authorized Admin document handlers. Use the recorded revision to select the object. Define pending, ready and failed states. Persist a terminal generation failure through a private status object observable by the API. Verify valid access, missing documents, wrong buyer and anonymous access, including direct object access. |
+| Q4 · Frontend | Q3 | Add document state and download to buyer quote details and merchant quote details. Poll pending state with a bound. Test pending → ready, failure, and a reopened earlier revision. Compare the downloaded file with the fixture after the live draft changes. |
+| Q5 · Infrastructure | G3, Q2, Q3, K3 | Deploy the quote-documents topic trigger and PDF function with a dedicated identity, zero minimum and two maximum instances. Use an authorized merchant send. Verify one private PDF per revision, parsed contents and authorized buyer download. Record function and object metadata against the event ID. |
+
+**Handoff.** Record request and response examples for pending, ready, denied and failed cases. Document the private object key convention, permitted identities, versioning rule, size limit and retention. Give 09 timestamps for the original send and first authorized successful download. [Quote model](../../../apps/backend/src/modules/quote/models/quote.ts) · [Quote workflow](../../../apps/backend/src/workflows/quote/workflows/merchant-send-quote.ts) · [Storage preconditions](https://cloud.google.com/storage/docs/request-preconditions)
