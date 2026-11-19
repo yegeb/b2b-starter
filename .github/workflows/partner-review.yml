@@ -1,0 +1,23 @@
+name: Request partner review
+
+on:
+  pull_request_target:
+    types: [opened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  request-review:
+    if: github.event.pull_request.user.login == 'yegeb' && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request review from borayilmazer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh api --method POST \
+            "repos/${REPOSITORY}/pulls/${PR_NUMBER}/requested_reviewers" \
+            -f 'reviewers[]=borayilmazer' --silent
