@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Medusa B2B Starter: a pnpm + Turborepo monorepo with a Medusa v2 backend (`apps/backend`) and a Next.js 15 storefront (`apps/storefront`). Adds companies, employees, spending limits, approvals, and quotes on top of Medusa commerce.
+Medusa B2B Starter: a pnpm + Turborepo monorepo with a Medusa v2 backend (`apps/backend`) and a Next.js storefront (`apps/storefront`). Adds companies, employees, spending limits, approvals, and quotes on top of Medusa commerce.
 
 ## Team Workflow
 
@@ -17,6 +17,14 @@ Git worktree and branch. Read `.agents/skills/asd-ste100/SKILL.md` for technical
 writing. Follow its strict mode for instructions and prose mode for explanations.
 Never delete or reset shared databases, Redis data, volumes, or cloud resources
 without an explicit user request for that action and target.
+
+## CMPE 48A Implementation
+
+Start with the [GCP implementation roadmap](docs/project/implementation-plan/README.md).
+Use the [release sequence](docs/project/implementation-plan/10-integration.md)
+to select work in dependency order. Read the assigned task in its brief before editing.
+Use the brief's verification criteria. Record results and blockers under the task ID.
+Distinguish source inspection from runtime results.
 
 ## Before You Start
 
@@ -67,7 +75,7 @@ Run from the repo root unless noted. Root scripts fan out through Turborepo.
 │   │       ├── types/              # Shared types per domain
 │   │       ├── utils/
 │   │       └── workflows/          # approval/, company/, employee/, order/, quote/, hooks/ (core-flow hooks)
-│   └── storefront/                 # Next.js 15 App Router (@b2b-starter/storefront)
+│   └── storefront/                 # Next.js App Router (@b2b-starter/storefront)
 │       └── src/
 │           ├── app/[countryCode]/  # (main) and (checkout) route groups
 │           ├── lib/
@@ -109,7 +117,7 @@ Published `@medusajs/*` packages ship an `AGENTS.md` at `node_modules/@medusajs/
 find node_modules apps/*/node_modules -maxdepth 6 -path "*/@medusajs/*/AGENTS.md" 2>/dev/null
 ```
 
-- Older Medusa versions don't include it. This repo pins `2.21.2`, which predates it, so the command currently returns nothing. When it's missing, fall back to the skills and the docs MCP server.
+- Check the installed version against the manifest and lockfile. If the package has no `AGENTS.md`, use the Medusa skills and version-appropriate official docs.
 - Never edit files under `node_modules/`.
 
 | Package | Read it for |
