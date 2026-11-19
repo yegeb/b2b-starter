@@ -1,0 +1,65 @@
+name: Apply PR tracking metadata
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, ready_for_review]
+
+permissions:
+  issues: read
+  pull-requests: write
+
+concurrency:
+  group: pr-tracking-${{ github.event.pull_request.number }}
+
+jobs:
+  update-tracking:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Copy tracking metadata from linked issues
+        shell: bash
+        run: |
+          issues=$(gh api graphql --paginate --slurp \
+            -f query='
+              query($owner: String!, $repo: String!, $number: Int!, $endCursor: String) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    closingIssuesReferences(first: 50, after: $endCursor) {
+                      pageInfo { hasNextPage endCursor }
+                      nodes {
+                        repository { nameWithOwner }
+                        labels(first: 100) { nodes { name } }
+                        milestone { number state }
+                      }
+                    }
+                  }
+                }
+              }' \
+            -f owner="${REPOSITORY%%/*}" -f repo="${REPOSITORY#*/}" -F number="$PR_NUMBER" |
+            jq --arg repo "$REPOSITORY" '
+              [ .[].data.repository.pullRequest.closingIssuesReferences.nodes[]
+                | select(.repository.nameWithOwner == $repo) ]
+            ')
+
+          endpoint="repos/$REPOSITORY/issues/$PR_NUMBER"
+          pr=$(gh api "$endpoint")
+          labels=$(jq -cn --argjson issues "$issues" --argjson pr "$pr" '
+            [ $issues[].labels.nodes[].name
+              | select(. == "cmpe-48a" or startswith("area: ")) ]
+            | unique - [$pr.labels[].name]
+            | {labels: .}
+          ')
+          if jq -e '.labels | length > 0' <<< "$labels" >/dev/null; then
+            gh api --method POST "$endpoint/labels" --input - --silent <<< "$labels"
+          fi
+
+          milestone=$(jq -r '
+            map(if .milestone.state == "OPEN" then .milestone.number else null end)
+            | unique | if length == 1 then .[0] // empty else empty end
+          ' <<< "$issues")
+          if [[ -n "$milestone" ]] && jq -e '.milestone == null' <<< "$pr" >/dev/null; then
+            gh api --method PATCH "$endpoint" -F milestone="$milestone" --silent
+          fi
