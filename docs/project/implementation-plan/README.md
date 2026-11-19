@@ -6,6 +6,25 @@ The ten briefs specify the implementation backlog. Local observations cover the 
 
 The [course requirements](<../CMPE 48A Term Project.pdf>) govern acceptance. The [tentative architecture](../tentative-cloud-architecture.pdf) governs the design. The package manifests and source at `fc5f49ab9e05fee4c094c9d7a5a79f6c950d2935` govern claims about the application. This was the fetched main revision on 19 November 2026. Track work on the roadmap in [issue #15](https://github.com/yegeb/b2b-starter/issues/15).
 
+## GitHub tracking
+
+[Issue #15](https://github.com/yegeb/b2b-starter/issues/15) is the parent
+for the ten workstream issues linked below. Each issue contains task IDs and
+acceptance checks from its brief. The [milestones](https://github.com/yegeb/b2b-starter/milestones)
+follow the seven gates in the [release sequence](10-integration.md). Some
+workstream issues span gates, so their milestone does not replace the release
+sequence.
+
+Before starting a task, check its current issue, related PRs, and milestone on
+GitHub. Record implementation evidence and blockers in the owning brief and
+the issue. Update the task checklist when its acceptance criteria are met.
+Create a sub-issue when a task needs its own owner, PR, or acceptance check.
+Link the new issue to its parent, task ID, dependencies, and relevant brief.
+Keep labels, milestones, and any project board current. Close an issue when its
+outcome is complete. Close a milestone when its release gate is verified and
+its assigned work is complete. If GitHub is unavailable, report pending updates
+and reconcile them when access returns.
+
 ## Research sequence and coverage
 
 Work on one brief at a time. The sequence below orders investigations. The [release sequence](10-integration.md) orders implementation across those investigations.
