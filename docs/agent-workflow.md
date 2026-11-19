@@ -109,6 +109,27 @@ A hook that is not loaded or trusted cannot block commands. Hook errors or
 timeouts may also allow a command to run. See the
 [Codex hooks documentation](https://learn.chatgpt.com/docs/hooks).
 
+The verification hooks compare Git snapshots before and after Bash or
+`apply_patch` tool calls. ESLint receives only changed JavaScript and TypeScript
+files in the two apps. TypeScript uses the app's project settings and reports
+diagnostics for changed files and project configuration. Deleted files cannot
+be linted or checked directly. Changes made in parallel can cause repeat checks.
+
+The `Stop` hook compares against the first snapshot of the turn. It skips
+documentation, storefront code, and backend Admin UI code for tests.
+A changed HTTP spec selects that spec. Quote code selects both quote suites.
+Store company routes select the company suite. Shared backend code selects
+all HTTP suites because each suite starts the backend. Update the mapping
+when HTTP test coverage changes. The storefront has no test suite.
+
+Each test run starts a new Jest process with no Codex conversation history.
+Start Codex with `CODEX_TEST_DB_PORT` and `CODEX_TEST_DB_USER` set for a
+disposable PostgreSQL instance on localhost. Set `CODEX_TEST_DB_PASSWORD`
+if that instance requires a password. Give the test role permission to create
+temporary databases. Install dependencies with the project's Node and pnpm
+versions. The hook reports missing database settings or a failing test run
+and gives Codex a chance to respond.
+
 Run the Codex hook regression checks with:
 
 ```sh

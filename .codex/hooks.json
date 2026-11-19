@@ -22,6 +22,42 @@
             "statusMessage": "Checking protected file edits"
           }
         ]
+      },
+      {
+        "matcher": "^(Bash|apply_patch)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/check_changes.py\" before",
+            "timeout": 20,
+            "statusMessage": "Recording code before the tool runs"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(Bash|apply_patch)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/check_changes.py\" after",
+            "timeout": 120,
+            "statusMessage": "Checking changed files"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/check_changes.py\" stop",
+            "timeout": 300,
+            "statusMessage": "Running related tests"
+          }
+        ]
       }
     ]
   }
