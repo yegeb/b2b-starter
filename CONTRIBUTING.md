@@ -79,6 +79,7 @@ human and upstream attribution intact.
 ## Pull requests
 
 1. Push your branch and open a pull request targeting this fork's `main`.
+   The workflow assigns PRs authored by `yegeb` to `yegeb` when they open.
 2. Use a descriptive title, preferably in the commit format, and complete the
    pull request template. Mention relevant issues and any changes needed to
    configuration or deployment.
