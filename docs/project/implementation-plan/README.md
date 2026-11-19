@@ -1,6 +1,8 @@
 # GCP implementation roadmap
 
-**Next session — application baseline.** Start with A1 in [01 · Application baseline](01-application.md). The quote journey has a source trace. It still needs a disposable local runtime and an observed buyer-to-merchant round trip. The other briefs are research assignments with proposed build tasks. A task becomes ready to build when its brief contains evidence for the relevant decisions.
+**Implementation starts with A1 and A3.** Local trials reproduced the quote, approval and checkout flows and identified two repairs. In a disposable copy, all 15 HTTP cases passed after the test-fixture and order-summary updates. A role check in the storefront restored the buyer's sent quote. Apply the repairs to the application and repeat the checks on the implementation revision. [Application evidence](01-application.md)
+
+The ten briefs specify the implementation backlog. Local observations cover the application and selected process boundaries. The cloud-facing briefs specify interfaces, dependencies and acceptance tests. The account owner must supply quota, credit, DNS and sender evidence before a deployed trial. Follow the [release sequence](10-integration.md) when building.
 
 The [course requirements](<../CMPE 48A Term Project.pdf>) govern acceptance. The [tentative architecture](../tentative-cloud-architecture.pdf) governs the design. The package manifests and source at `fc5f49ab9e05fee4c094c9d7a5a79f6c950d2935` govern claims about the application. This was the fetched main revision on 19 November 2026. Track work on the roadmap in [issue #15](https://github.com/yegeb/b2b-starter/issues/15).
 
@@ -10,16 +12,16 @@ Work on one brief at a time. The sequence below orders investigations. The [rele
 
 | Session | Lead | Prerequisite evidence | Course or architecture coverage | Current state |
 | --- | --- | --- | --- | --- |
-| [01 · Application baseline](01-application.md) | Backend, then frontend | Course brief and source revision | Buyers, approvers, merchants, existing code, test fixtures | Source audit recorded. Runtime checks open. |
-| [02 · Redis and processes](02-runtime.md) | Backend | 01 process entry points and tests | API/Admin, worker, PostgreSQL migrations, Redis coordination | Package inventory recorded. Provider behavior open. |
-| [03 · Business events](03-events.md) | Backend | 01 transitions and 02 worker boundary | Redis-backed application events, worker bridge, two Pub/Sub topics | Candidate contracts ready for validation. |
-| [04 · Notifications](04-notifications.md) | Backend | 03 notification contract | Notification function and email delivery | Test delivery proposed. Provider evidence open. |
-| [05 · Quote documents](05-documents.md) | Backend, then frontend | 01 quote trace and 03 document contract | Quote function, private PDFs, authorized downloads | Version and access design proposed. |
-| [06 · Product images](06-images.md) | Backend, then infrastructure | 01 catalog and worker inputs | Originals, Eventarc, image function, catalog, private results | Storage boundaries proposed. |
-| [07 · Foundation and VMs](07-foundation.md) | Infrastructure | 02–06 identities and access needs | VPC, IAM, Terraform, dedicated data VMs and persistent disks | Topology specified. Account checks open. |
-| [08 · GKE and HTTPS](08-gke.md) | Infrastructure | 01 build inputs and 07 network | Images, registry, three Deployments, API HPA, HTTPS entry point | Release and routing design proposed. |
-| [09 · Performance and cost](09-evaluation.md) | Infrastructure, then reviewer | 03–08 functional outcomes and resource limits | Locust, metrics, charts, cost and trial evidence | Experiment and ledger design proposed. |
-| [10 · Integration and submission](10-integration.md) | Coordinator, then reviewer | Findings and task IDs from 01–09 | Reproducible deployment, GitHub README, report, presentation, video | Task order and evidence checklist drafted. |
+| [01 · Application baseline](01-application.md) ([#16](https://github.com/yegeb/b2b-starter/issues/16)) | Backend, then frontend | Course brief and source revision | Buyers, approvers, merchants, existing code, test fixtures | API journeys and build pair exercised. Original suite and buyer UI need the tested repairs. |
+| [02 · Redis and processes](02-runtime.md) ([#17](https://github.com/yegeb/b2b-starter/issues/17)) | Backend | 01 process entry points and tests | API/Admin, worker, PostgreSQL migrations, Redis coordination | Temporary two-API trial verified session sharing, queued delivery, lock contention and workflow resumption. VM recovery open. |
+| [03 · Business events](03-events.md) ([#18](https://github.com/yegeb/b2b-starter/issues/18)) | Backend | 01 transitions and 02 worker boundary | Redis-backed application events, worker bridge, two Pub/Sub topics | Commerce transition sources traced. Outbox and replay trials pending. |
+| [04 · Notifications](04-notifications.md) ([#19](https://github.com/yegeb/b2b-starter/issues/19)) | Backend | 03 notification contract | Notification function and email delivery | Test delivery proposed. Provider evidence open. |
+| [05 · Quote documents](05-documents.md) ([#20](https://github.com/yegeb/b2b-starter/issues/20)) | Backend, then frontend | 01 quote trace and 03 document contract | Quote function, private PDFs, authorized downloads | Version and access design proposed. |
+| [06 · Product images](06-images.md) ([#21](https://github.com/yegeb/b2b-starter/issues/21)) | Backend, then infrastructure | 01 catalog and worker inputs | Originals, Eventarc, image function, catalog, private results | Admin upload and attachment traced in the installed packages. Processing trial pending. |
+| [07 · Foundation and VMs](07-foundation.md) ([#22](https://github.com/yegeb/b2b-starter/issues/22)) | Infrastructure | 02–06 identities and access needs | VPC, IAM, Terraform, dedicated data VMs and persistent disks | Topology specified. Account checks open. |
+| [08 · GKE and HTTPS](08-gke.md) ([#23](https://github.com/yegeb/b2b-starter/issues/23)) | Infrastructure | 01 build inputs and 07 network | Images, registry, three Deployments, API HPA, HTTPS entry point | Build ordering tested locally. Scheduling, TLS and HPA trials pending. |
+| [09 · Performance and cost](09-evaluation.md) ([#24](https://github.com/yegeb/b2b-starter/issues/24)) | Infrastructure, then reviewer | 03–08 functional outcomes and resource limits | Locust, metrics, charts, cost and trial evidence | Experiment and ledger design proposed. |
+| [10 · Integration and submission](10-integration.md) ([#25](https://github.com/yegeb/b2b-starter/issues/25)) | Coordinator, then reviewer | Findings and task IDs from 01–09 | Reproducible deployment, GitHub README, report, presentation, video | Task order and evidence checklist drafted. |
 
 ## Decisions and constraints
 
