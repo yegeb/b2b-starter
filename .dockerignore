@@ -1,0 +1,15 @@
+.git
+.github
+.agents
+.codex
+.pnpm-store
+**/node_modules
+**/.medusa
+**/.next
+**/.turbo
+**/.env
+**/.env.*
+!**/.env.template
+coverage
+docs
+tests

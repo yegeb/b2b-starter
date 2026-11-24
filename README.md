@@ -51,6 +51,8 @@ An official Medusa starter for B2B ecommerce, built with [Medusa](https://medusa
 
 ## Getting Started
 
+For an isolated local container demo, see [Local container preview](./docs/local-container-preview.md).
+
 ### Deploy with Medusa Cloud
 
 The fastest way to get started is deploying with [Medusa Cloud](https://cloud.medusajs.com):
