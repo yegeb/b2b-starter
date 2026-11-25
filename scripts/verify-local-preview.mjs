@@ -62,7 +62,7 @@ try {
   })
   await call("Runtime.enable")
   let text = ""
-  for (let attempt = 0; attempt < 40; attempt++) {
+  for (let attempt = 0; attempt < 120; attempt++) {
     const result = await call("Runtime.evaluate", {
       expression: "document.body?.innerText || ''",
       returnByValue: true,
