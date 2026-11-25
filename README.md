@@ -166,6 +166,7 @@ The repo is a pnpm workspace orchestrated by [Turborepo](https://turborepo.com).
 | Variable | Description |
 |----------|-------------|
 | `NEXT_PUBLIC_MEDUSA_BACKEND_URL` | URL of the Medusa backend |
+| `MEDUSA_BACKEND_URL` | Optional server-side backend URL, used instead of the public URL on the server |
 | `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` | Publishable API key (required) |
 | `NEXT_PUBLIC_BASE_URL` | Public URL of the storefront |
 | `NEXT_PUBLIC_DEFAULT_REGION` | Default region code (e.g. `us`) |
