@@ -60,12 +60,29 @@ Development mode allows the admin session cookie over the local HTTP URL.
 
 4. Read the generated publishable key and build the storefront.
 
+For Docker Desktop, select the host gateway for the build.
+
+```sh
+preview_build_network=default
+preview_build_backend=http://host.docker.internal:19000
+```
+
+For a local Linux Docker engine, select the host network instead.
+This lets the build reach the API on host loopback without exposing the API externally.
+
+```sh
+preview_build_network=host
+preview_build_backend=http://127.0.0.1:19000
+```
+
+Then build the storefront.
+
 ```sh
 preview_key=$(docker exec b2b-preview-db psql -U demo -d medusa_demo -t -A \
   -c "SELECT token FROM api_key WHERE type = 'publishable' AND revoked_at IS NULL AND deleted_at IS NULL LIMIT 1")
 test -n "$preview_key"
-docker build --target storefront --add-host=host.docker.internal:host-gateway \
-  --build-arg MEDUSA_BACKEND_URL=http://host.docker.internal:19000 \
+docker build --target storefront --network "$preview_build_network" \
+  --build-arg MEDUSA_BACKEND_URL="$preview_build_backend" \
   --build-arg NEXT_PUBLIC_MEDUSA_BACKEND_URL=http://localhost:19000 \
   --build-arg NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY="$preview_key" \
   --build-arg NEXT_PUBLIC_DEFAULT_REGION=gb \
