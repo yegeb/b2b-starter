@@ -46,6 +46,7 @@ The `sslmode=disable` option applies to this local database, which does not supp
 ```sh
 docker run -d --name b2b-preview-api --network b2b-preview-net \
   -p 127.0.0.1:19000:9000 \
+  -e NODE_ENV=development \
   -e 'DATABASE_URL=postgres://demo:demo-local-only@b2b-preview-db:5432/medusa_demo?sslmode=disable' \
   -e JWT_SECRET=local-demo-only-jwt -e COOKIE_SECRET=local-demo-only-cookie \
   -e STORE_CORS=http://localhost:18000 -e ADMIN_CORS=http://localhost:19000 \
@@ -55,6 +56,7 @@ docker run -d --name b2b-preview-api --network b2b-preview-net \
 
 Check `http://localhost:19000/health` before building the storefront.
 The backend must be reachable while Next.js builds the product pages.
+Development mode allows the admin session cookie over the local HTTP URL.
 
 4. Read the generated publishable key and build the storefront.
 
