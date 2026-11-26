@@ -143,7 +143,9 @@ const ItemFull = ({
                           : "opacity-100"
                       )}
                       type="number"
-                      aria-label={`Quantity for ${item.variant?.title ?? item.title}`}
+                      aria-label={`Quantity for ${
+                        item.variant?.title ?? item.title
+                      }`}
                       value={quantity}
                       onChange={(e) => {
                         setQuantity(e.target.value)

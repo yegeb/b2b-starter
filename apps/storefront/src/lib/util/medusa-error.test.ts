@@ -4,7 +4,11 @@ import medusaError from "./medusa-error"
 
 describe("medusaError", () => {
   it("passes on the backend message of a refused SDK request", () => {
-    const refused = new FetchError("Cart is pending approval", "Bad Request", 400)
+    const refused = new FetchError(
+      "Cart is pending approval",
+      "Bad Request",
+      400
+    )
 
     expect(() => medusaError(refused)).toThrowError(
       new Error("Cart is pending approval")
