@@ -28,6 +28,8 @@ jobs:
         with:
           node-version: '22.23.4'
           cache: pnpm
+      - name: Test the local container preview guide
+        run: node --test tests/local-container-preview-doc.test.mjs
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Type-check the backend
