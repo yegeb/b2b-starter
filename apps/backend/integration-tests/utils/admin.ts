@@ -3,14 +3,12 @@ import {
   IUserModuleService,
 } from "@medusajs/framework/types";
 import { Modules } from "@medusajs/framework/utils";
-import jwt from "jsonwebtoken";
-import Scrypt from "scrypt-kdf";
 
 export const adminHeaders = {
   headers: {},
 };
 
-export const createAdminUser = async (adminHeaders, appContainer) => {
+export const createAdminUser = async (adminHeaders, appContainer, api) => {
   const userModule: IUserModuleService = appContainer.resolve(Modules.USER);
   const authModule: IAuthModuleService = appContainer.resolve(Modules.AUTH);
   const user = await userModule.createUsers({
@@ -19,6 +17,7 @@ export const createAdminUser = async (adminHeaders, appContainer) => {
     email: "admin@medusa.js",
   });
 
+  const { default: Scrypt } = await import("scrypt-kdf");
   const hashConfig = { logN: 15, r: 8, p: 1 };
   const passwordHash = await Scrypt.kdf("somepassword", hashConfig);
 
@@ -28,7 +27,7 @@ export const createAdminUser = async (adminHeaders, appContainer) => {
         provider: "emailpass",
         entity_id: "admin@medusa.js",
         provider_metadata: {
-          password: passwordHash.toString("base64"),
+          password: Buffer.from(passwordHash).toString("base64"),
         },
       },
     ],
@@ -37,17 +36,10 @@ export const createAdminUser = async (adminHeaders, appContainer) => {
     },
   });
 
-  const token = jwt.sign(
-    {
-      actor_id: user.id,
-      actor_type: "user",
-      auth_identity_id: authIdentity.id,
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "1d",
-    }
-  );
+  const { data: { token } } = await api.post("/auth/user/emailpass", {
+    email: "admin@medusa.js",
+    password: "somepassword",
+  });
 
   adminHeaders.headers["authorization"] = `Bearer ${token}`;
 

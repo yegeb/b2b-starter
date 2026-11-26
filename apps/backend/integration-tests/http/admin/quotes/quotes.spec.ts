@@ -27,7 +27,7 @@ medusaIntegrationTestRunner({
 
     beforeEach(async () => {
       const container = getContainer();
-      await createAdminUser(adminHeaders, container);
+      await createAdminUser(adminHeaders, container, api);
       const publishableKey = await generatePublishableKey(container);
       storeHeaders = generateStoreHeaders({ publishableKey });
       const res = await createStoreUser({ api, storeHeaders });

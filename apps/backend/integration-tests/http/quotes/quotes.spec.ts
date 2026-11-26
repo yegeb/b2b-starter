@@ -25,7 +25,7 @@ medusaIntegrationTestRunner({
 
     beforeEach(async () => {
       const container = getContainer();
-      await createAdminUser(adminHeaders, container);
+      await createAdminUser(adminHeaders, container, api);
       const publishableKey = await generatePublishableKey(container);
       storeHeaders = generateStoreHeaders({ publishableKey });
       const res = await createStoreUser({ api, storeHeaders });
@@ -91,7 +91,8 @@ medusaIntegrationTestRunner({
               ],
               summary: expect.objectContaining({
                 paid_total: 0,
-                difference_sum: 0,
+                accounting_total: 100,
+                credit_line_total: 0,
                 refunded_total: 0,
                 transaction_total: 0,
                 pending_difference: 100,
