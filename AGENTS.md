@@ -62,11 +62,11 @@ Run from the repo root unless noted. Root scripts fan out through Turborepo.
 │   ├── backend/                    # Medusa v2 app (@b2b-starter/backend)
 │   │   ├── medusa-config.ts        # Registers company, quote, approval modules
 │   │   ├── integration-tests/
-│   │   │   ├── http/               # *.spec.ts HTTP tests (admin/, companies/, quotes/)
+│   │   │   ├── http/               # *.spec.ts HTTP tests (admin/, approvals/, companies/, quotes/)
 │   │   │   └── utils/              # Seeders and auth helpers for tests
 │   │   └── src/
 │   │       ├── admin/              # Admin extensions: routes/ (approvals, companies, quotes), components/, hooks/api/
-│   │       ├── api/                # admin/ and store/ routes, middlewares.ts, middlewares/ensure-role.ts
+│   │       ├── api/                # admin/ and store/ routes, middlewares.ts, middlewares/ (ownership, company access)
 │   │       ├── jobs/               # Scheduled jobs (empty)
 │   │       ├── links/              # Module links (company, employee, cart, order, quote, approval)
 │   │       ├── migration-scripts/  # initial-data-seed.ts, runs on db:migrate
