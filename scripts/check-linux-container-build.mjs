@@ -14,11 +14,19 @@
 //      alone does not prove that the build network works.
 //   5. Start the storefront container and confirm that it serves a seeded
 //      product page and a sitemap that lists it.
+//   6. Run the catalog browser check (scripts/verify-local-preview.mjs) against
+//      the storefront container: the store lists the eight seeded products and
+//      the Laptops filter narrows the list to the laptop. The browser uses the
+//      public localhost URLs, as a person who opens the preview does.
 //
 // Requirements:
 //   - Linux, with a Docker engine that runs on this host. Host loopback must be
 //     the loopback of the engine, so Docker Desktop is not supported.
 //   - Access to Docker Hub and the package registry.
+//   - The repository dependencies (`pnpm install --frozen-lockfile`) and the
+//     Playwright browser
+//     (`pnpm --filter @b2b-starter/e2e exec playwright install chromium`) for
+//     step 6.
 //
 // Optional:
 //   - CONTAINER_CHECK_OUTPUT_DIR: directory for logs and summary.json.
@@ -275,6 +283,40 @@ async function prerenderedRoutes() {
   return Object.keys(JSON.parse(json).routes ?? {})
 }
 
+// Run the catalog browser check against the running preview and keep its
+// output in the check's log directory.
+function catalogBrowserCheck(previewUrl) {
+  ensureNotInterrupted()
+  const log = join(outputDir, "catalog-browser-check.log")
+  return new Promise((done, fail) => {
+    const child = spawn(
+      process.execPath,
+      [join(checkout, "scripts", "verify-local-preview.mjs")],
+      {
+        cwd: checkout,
+        env: { ...process.env, PREVIEW_URL: previewUrl },
+        stdio: ["ignore", "pipe", "pipe"],
+      }
+    )
+    children.add(child)
+    const stream = createWriteStream(log)
+    child.stdout.pipe(stream, { end: false })
+    child.stderr.pipe(stream, { end: false })
+    child.once("error", (error) => {
+      children.delete(child)
+      stream.end()
+      fail(error)
+    })
+    child.once("close", (code) => {
+      children.delete(child)
+      stream.end(() => {
+        if (code === 0) done()
+        else fail(new Error(`The catalog browser check failed with status ${code}. See ${log}.`))
+      })
+    })
+  })
+}
+
 async function saveLogs(name) {
   const { output } = await docker(["logs", name], { allowInterrupted: true })
   await writeFile(join(outputDir, `${name}.log`), output)
@@ -527,6 +569,10 @@ try {
   if (!sitemapXml.includes(`<loc>${laptopUrl}</loc>`)) {
     throw new Error(`${sitemapUrl} does not list ${laptopUrl}.`)
   }
+
+  // 6. The seeded catalog and the laptop filter work in a browser.
+  await catalogBrowserCheck(storefrontUrl)
+  record("catalog-browser-check", { url: storefrontUrl, result: "passed" })
 } catch (error) {
   summary.errors.push(error instanceof Error ? error.message : String(error))
 } finally {
@@ -546,6 +592,6 @@ if (summary.errors.length) {
   process.exit(1)
 }
 console.log(
-  "PASS: the storefront image built with --network host against the loopback API " +
-    "and served a seeded product page and sitemap."
+  "PASS: the storefront image built with --network host against the loopback API, " +
+    "served a seeded product page and sitemap, and passed the catalog browser check."
 )
