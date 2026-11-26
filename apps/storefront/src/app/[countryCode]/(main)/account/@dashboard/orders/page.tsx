@@ -24,9 +24,10 @@ export default async function Orders() {
     approval_settings?.requires_admin_approval ||
     approval_settings?.requires_sales_manager_approval
 
-  const { carts_with_approvals } = await listApprovals({
-    status: ApprovalStatusType.PENDING,
-  })
+  const carts_with_approvals = customer?.employee?.is_admin
+    ? (await listApprovals({ status: ApprovalStatusType.PENDING }))
+        .carts_with_approvals
+    : []
 
   return (
     <div
@@ -36,7 +37,7 @@ export default async function Orders() {
       <div className="mb-4">
         <Heading>Orders</Heading>
       </div>
-      {approval_required && (
+      {customer?.employee?.is_admin && approval_required && (
         <div>
           <Heading level="h2" className="text-neutral-700 mb-4">
             Pending Approvals
