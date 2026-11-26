@@ -32,3 +32,46 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build the backend
         run: pnpm --filter @b2b-starter/backend build
+
+  storefront-build:
+    name: Storefront build regression check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: build_check
+          POSTGRES_PASSWORD: build_check
+          POSTGRES_DB: build_check
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U build_check"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build the storefront with the API unavailable and available
+        env:
+          # A disposable service database that exists only for this job.
+          BUILD_CHECK_DATABASE_URL: postgres://build_check:build_check@localhost:5432/build_check
+          BUILD_CHECK_OUTPUT_DIR: ${{ runner.temp }}/storefront-build-check
+        run: node scripts/check-storefront-build.mjs
+      - name: Upload build check logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storefront-build-check
+          path: ${{ runner.temp }}/storefront-build-check
+          if-no-files-found: ignore
