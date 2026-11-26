@@ -100,7 +100,7 @@ test("a bulk add that the backend refuses shows an error and leaves the cart unc
   await quantityInput(page, "256 GB / Blue").fill("1")
   await addToCart.click()
 
-  await expect(page.getByText("Failed to add to cart")).toBeVisible()
+  await expect(page.getByText("Cart is locked for approval.")).toBeVisible()
 
   await openPage(page, `${storefrontUrl}/dk/cart`)
   const items = page.getByTestId("cart-item")

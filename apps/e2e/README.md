@@ -26,7 +26,6 @@ The storefront server uses a separate backend URL, as a container does with an i
 The browser uses the public backend URL on port 9100.
 The storefront server uses `MEDUSA_BACKEND_URL` on port 9101, where a proxy forwards each request to the backend and records it.
 The bulk cart test uses these records to check that server-side requests use `MEDUSA_BACKEND_URL` and that the browser never receives it.
-Set `E2E_SERVER_BACKEND_PORT` to use another port for the proxy.
 The script generates all passwords and secrets for each run.
 Each run uses new fixture names, so you can run it again on the same database.
 

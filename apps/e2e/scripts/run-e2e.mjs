@@ -37,9 +37,7 @@ if (!databaseUrl) {
 
 const backendPort = Number(process.env.E2E_BACKEND_PORT || 9100)
 const storefrontPort = Number(process.env.E2E_STOREFRONT_PORT || 8100)
-const serverBackendPort = Number(
-  process.env.E2E_SERVER_BACKEND_PORT || backendPort + 1
-)
+const serverBackendPort = backendPort + 1
 const backendUrl = `http://127.0.0.1:${backendPort}`
 const serverBackendUrl = `http://127.0.0.1:${serverBackendPort}`
 const storefrontUrl = `http://localhost:${storefrontPort}`

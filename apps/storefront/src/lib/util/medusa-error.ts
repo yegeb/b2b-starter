@@ -1,3 +1,5 @@
+import { FetchError } from "@medusajs/js-sdk"
+
 export default function medusaError(error: any): never {
   if (error.response) {
     // The request was made and the server responded with a status code
@@ -12,6 +14,8 @@ export default function medusaError(error: any): never {
     const message = error.response.data.message || error.response.data
 
     throw new Error(message.charAt(0).toUpperCase() + message.slice(1) + ".")
+  } else if (error instanceof FetchError) {
+    throw new Error(error.message)
   } else if (error.request) {
     // The request was made but no response was received
     throw new Error("No response received: " + error.request)
