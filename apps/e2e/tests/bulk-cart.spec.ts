@@ -101,6 +101,10 @@ test("a bulk add that the backend refuses shows an error and leaves the cart unc
 
   const addToCart = await openLaptopPage(page)
   await quantityInput(page, "256 GB / Blue").fill("1")
+  // Wait until the browser has loaded the session cart with its one item.
+  // The cart has no approval yet, so the client pre-check lets the add
+  // through.
+  await expect(page.getByTestId("cart-item-count")).toHaveText("1")
 
   // The cart waits for approval only after the page loaded it, so the
   // storefront sends the items and the backend refuses them.

@@ -54,6 +54,35 @@ describe("CartProvider bulk add", () => {
     vi.mocked(toast.error).mockImplementation(() => "")
   })
 
+  it("blocks an add once a cart waiting for approval arrives after the first render", async () => {
+    vi.mocked(addToCartBulk).mockClear()
+    vi.mocked(toast.error).mockClear()
+    const pendingCart = {
+      ...cart,
+      approvals: [{ id: "appr_1", status: "pending" }],
+    } as unknown as B2BCart
+
+    // Statically rendered pages load the session cart in the browser, so the
+    // provider first renders without a cart.
+    const { rerender } = render(
+      <CartProvider cart={null}>
+        <div />
+      </CartProvider>
+    )
+    rerender(
+      <CartProvider cart={pendingCart}>
+        <div />
+      </CartProvider>
+    )
+
+    addToCartEventBus.emitCartAdd(payload)
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Cart is locked for approval.")
+    )
+    expect(addToCartBulk).not.toHaveBeenCalled()
+  })
+
   it("tells the buyer that a cart waiting for approval is locked", async () => {
     vi.mocked(addToCartBulk).mockResolvedValue({
       error: {

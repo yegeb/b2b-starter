@@ -134,7 +134,10 @@ const CartDrawer = ({
                   })
                 : "Cart"}
             </span>
-            <div className="bg-blue-500 text-white text-xs px-1.5 py-px rounded-full">
+            <div
+              className="bg-blue-500 text-white text-xs px-1.5 py-px rounded-full"
+              data-testid="cart-item-count"
+            >
               {totalItems}
             </div>
           </button>
