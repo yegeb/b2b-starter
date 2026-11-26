@@ -75,3 +75,28 @@ export async function cartSeeder({ api, storeHeaders, data }) {
     )
   ).data.cart;
 }
+
+export async function companySeeder({ api, adminHeaders, data }) {
+  return (
+    await api.post(
+      "/admin/companies",
+      {
+        name: "Test Company",
+        email: "company@example.com",
+        currency_code: "usd",
+        ...data,
+      },
+      adminHeaders
+    )
+  ).data.companies[0];
+}
+
+export async function employeeSeeder({ api, adminHeaders, companyId, data }) {
+  return (
+    await api.post(
+      `/admin/companies/${companyId}/employees`,
+      { spending_limit: 0, is_admin: false, ...data },
+      adminHeaders
+    )
+  ).data.employee;
+}

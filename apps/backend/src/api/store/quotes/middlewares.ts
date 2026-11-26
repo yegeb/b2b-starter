@@ -5,12 +5,17 @@ import {
 } from "@medusajs/framework";
 import { MiddlewareRoute } from "@medusajs/medusa";
 import {
+  ensureCustomerOwnsCart,
+  ensureCustomerOwnsQuote,
+} from "../../middlewares/ensure-ownership";
+import {
   listQuotesTransformQueryConfig,
   retrieveQuoteTransformQueryConfig,
 } from "./query-config";
 import {
   AcceptQuote,
   CreateQuote,
+  CreateQuoteType,
   GetQuoteParams,
   RejectQuote,
   StoreCreateQuoteMessage,
@@ -34,6 +39,9 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
     matcher: "/store/quotes",
     middlewares: [
       validateAndTransformBody(CreateQuote),
+      ensureCustomerOwnsCart(
+        (req) => (req.validatedBody as CreateQuoteType).cart_id
+      ),
       validateAndTransformQuery(
         GetQuoteParams,
         retrieveQuoteTransformQueryConfig
@@ -44,6 +52,7 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
     method: ["GET"],
     matcher: "/store/quotes/:id",
     middlewares: [
+      ensureCustomerOwnsQuote,
       validateAndTransformQuery(
         GetQuoteParams,
         retrieveQuoteTransformQueryConfig
@@ -54,6 +63,7 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
     method: ["POST"],
     matcher: "/store/quotes/:id/accept",
     middlewares: [
+      ensureCustomerOwnsQuote,
       validateAndTransformBody(AcceptQuote),
       validateAndTransformQuery(
         GetQuoteParams,
@@ -65,6 +75,7 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
     method: ["POST"],
     matcher: "/store/quotes/:id/reject",
     middlewares: [
+      ensureCustomerOwnsQuote,
       validateAndTransformBody(RejectQuote),
       validateAndTransformQuery(
         GetQuoteParams,
@@ -76,6 +87,7 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
     method: ["GET"],
     matcher: "/store/quotes/:id/preview",
     middlewares: [
+      ensureCustomerOwnsQuote,
       validateAndTransformQuery(
         GetQuoteParams,
         retrieveQuoteTransformQueryConfig
@@ -86,6 +98,7 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
     method: ["POST"],
     matcher: "/store/quotes/:id/messages",
     middlewares: [
+      ensureCustomerOwnsQuote,
       validateAndTransformBody(StoreCreateQuoteMessage),
       validateAndTransformQuery(
         GetQuoteParams,

@@ -4,6 +4,7 @@ import {
   validateAndTransformQuery,
 } from "@medusajs/framework";
 import { MiddlewareRoute } from "@medusajs/medusa";
+import { ensureCustomerOwnsCart } from "../../middlewares/ensure-ownership";
 import { retrieveCartTransformQueryConfig } from "./query-config";
 import {
   GetCartLineItemsBulkParams,
@@ -25,6 +26,9 @@ export const storeCartsMiddlewares: MiddlewareRoute[] = [
   {
     method: ["POST"],
     matcher: "/store/carts/:id/approvals",
-    middlewares: [authenticate("customer", ["bearer", "session"])],
+    middlewares: [
+      authenticate("customer", ["bearer", "session"]),
+      ensureCustomerOwnsCart((req) => req.params.id),
+    ],
   },
 ];

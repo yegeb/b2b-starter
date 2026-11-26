@@ -46,10 +46,14 @@ export const createAdminUser = async (adminHeaders, appContainer, api) => {
   return { user, authIdentity };
 };
 
-export const createStoreUser = async ({ api, storeHeaders }) => {
+export const createStoreUser = async ({
+  api,
+  storeHeaders,
+  email = "test@email.com",
+}) => {
   const registerToken = (
     await api.post("/auth/customer/emailpass/register", {
-      email: "test@email.com",
+      email,
       password: "password",
     })
   ).data.token;
@@ -58,7 +62,7 @@ export const createStoreUser = async ({ api, storeHeaders }) => {
     await api.post(
       "/store/customers",
       {
-        email: "test@email.com",
+        email,
       },
       {
         headers: {
@@ -71,7 +75,7 @@ export const createStoreUser = async ({ api, storeHeaders }) => {
 
   const token = (
     await api.post("/auth/customer/emailpass", {
-      email: "test@email.com",
+      email,
       password: "password",
     })
   ).data.token;
