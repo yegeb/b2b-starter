@@ -32,6 +32,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build the backend
         run: pnpm --filter @b2b-starter/backend build
+      - name: Type-check the storefront
+        run: pnpm --filter @b2b-starter/storefront exec tsc --noEmit
+      - name: Run the storefront and Admin UI tests
+        run: pnpm test
 
   storefront-build:
     name: Storefront build regression check
