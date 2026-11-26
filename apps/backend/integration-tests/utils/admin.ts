@@ -17,7 +17,16 @@ export const createAdminUser = async (adminHeaders, appContainer, api) => {
     email: "admin@medusa.js",
   });
 
-  const { default: Scrypt } = await import("scrypt-kdf");
+  // scrypt-kdf is an ES module with only a default export at runtime.
+  // Its type declarations list the functions as named exports instead.
+  const { default: Scrypt } = (await import("scrypt-kdf")) as unknown as {
+    default: {
+      kdf: (
+        passphrase: string,
+        params: { logN: number; r: number; p: number }
+      ) => Promise<Uint8Array>;
+    };
+  };
   const hashConfig = { logN: 15, r: 8, p: 1 };
   const passwordHash = await Scrypt.kdf("somepassword", hashConfig);
 

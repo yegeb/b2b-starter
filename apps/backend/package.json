@@ -18,6 +18,7 @@
     "start": "medusa start",
     "dev": "medusa develop",
     "lint": "medusa lint",
+    "typecheck": "tsc --noEmit -p .",
     "clean": "rm -rf .medusa/server .medusa/admin node_modules",
     "test": "vitest run",
     "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
