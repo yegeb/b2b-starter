@@ -69,9 +69,26 @@ The approver's navigation showed **Approvals 1**, and the orders and approvals p
 
 The Admin price override saved a wrong price after an edit of a grouped value.
 Deleting one digit from `1,500` displayed `NaN` and saved EUR 1.00, tracked in [issue 96](https://github.com/yegeb/b2b-starter/issues/96).
-Replace the whole value when entering a price until that issue is fixed.
-The storefront type check reports five errors that also occur on the base revision, tracked in [issue 97](https://github.com/yegeb/b2b-starter/issues/97).
-The storefront has no test runner, so the role-specific views have no automated test yet, tracked in [issue 98](https://github.com/yegeb/b2b-starter/issues/98).
+The storefront type check reported five errors that also occurred on the base revision, tracked in [issue 97](https://github.com/yegeb/b2b-starter/issues/97).
+The storefront had no test runner, tracked in [issue 98](https://github.com/yegeb/b2b-starter/issues/98).
+
+### A3 follow-up fixes on 26 November 2026
+
+`pnpm test` runs Vitest component tests in the storefront and the Admin extensions.
+The tests replace the data layer with mocks that follow the Store and Admin API behavior.
+Each test below failed on the code before its fix and passed after it.
+
+| Issue | Change | Regression test |
+| --- | --- | --- |
+| [98](https://github.com/yegeb/b2b-starter/issues/98) | Add the storefront test runner. | An ordinary employee's account layout and orders page render without a call to the approval list. A company admin still gets the pending count and the **Pending Approvals** list. Before the role check, the buyer cases failed with `Forbidden`. |
+| [89](https://github.com/yegeb/b2b-starter/issues/89) | Request `customer.employee.company` for the Admin quote page. Show `-` without an employee or company. | The page showed `$NaN` before the fix. It now shows EUR 1,000.00 and the company link. |
+| [96](https://github.com/yegeb/b2b-starter/issues/96) | Store the unformatted price value. Send an update only for a valid changed price. | Before the fix, deleting one digit from `1,500` displayed `NaN`, and an unchanged field sent updates. The edit now saves 150. |
+| [97](https://github.com/yegeb/b2b-starter/issues/97) | Fix nullable profile inputs and the cart drawer timer type. Declare `zod` as a peer of `@hookform/resolvers` 3 so that the storefront resolver uses the storefront's zod 3. | `tsc --noEmit` for the storefront exits zero. Pull request checks now run it. |
+
+In the live demo, the Admin quote page for `quo_01M8BN5A97F8GH6NVYFTXBW042` showed EUR 1,000.00 and linked to the buyer's company.
+On the same quote, deleting one digit from `1,500` displayed `150` and saved EUR 150.00.
+Focusing and leaving the field without a change sent no update.
+The Admin type check has one error in `manage-items-section.tsx` that also occurs on the base revision, tracked in [issue 109](https://github.com/yegeb/b2b-starter/issues/109).
 
 | Actor | Intended scope for A4 | Acceptance fixture |
 | --- | --- | --- |
