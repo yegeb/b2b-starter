@@ -29,6 +29,15 @@
     "test:integration:modules": {
       "cache": false
     },
+    "test:e2e": {
+      "passThroughEnv": [
+        "CI",
+        "E2E_DATABASE_URL",
+        "E2E_BACKEND_PORT",
+        "E2E_STOREFRONT_PORT"
+      ],
+      "cache": false
+    },
     "test:unit": {
       "inputs": ["$TURBO_DEFAULT$", "jest.config.*"]
     },

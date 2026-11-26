@@ -36,10 +36,11 @@ low-impact changes, use an appropriate review or check instead when a new test
 would not add meaningful coverage. Explain the choice in the report.
 
 Consult `AGENTS.md` for current commands and test limitations. In particular,
-do not count `pnpm test` as a passing suite when it runs no tests. Backend HTTP
-integration tests require a disposable local PostgreSQL target. Never point tests
-at shared project data. If a necessary check cannot run safely or lacks a required
-dependency, report it as blocked and give the reason. Do not claim it passed.
+`pnpm test` runs only the Vitest UI tests, so do not count it as backend API
+coverage. Backend HTTP integration tests require a disposable local PostgreSQL
+target. Never point tests at shared project data. If a necessary check cannot
+run safely or lacks a required dependency, report it as blocked and give the
+reason. Do not claim it passed.
 
 After fixing a finding, rerun the affected checks. Repeat the diff review if the
 fix changes the scope. Do not run unrelated suites without a reason.

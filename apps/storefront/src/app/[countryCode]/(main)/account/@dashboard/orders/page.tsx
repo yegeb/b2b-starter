@@ -1,4 +1,4 @@
-import { listApprovals } from "@/lib/data/approvals"
+import { listApprovals, listCustomerApprovals } from "@/lib/data/approvals"
 import { retrieveCompany } from "@/lib/data/companies"
 import { retrieveCustomer } from "@/lib/data/customer"
 import { listOrders } from "@/lib/data/orders"
@@ -24,9 +24,13 @@ export default async function Orders() {
     approval_settings?.requires_admin_approval ||
     approval_settings?.requires_sales_manager_approval
 
-  const { carts_with_approvals } = await listApprovals({
-    status: ApprovalStatusType.PENDING,
-  })
+  // Company admins see the company's pending requests. Other employees see
+  // only their own carts, because the company list is admin-only.
+  const { carts_with_approvals } = !approval_required
+    ? { carts_with_approvals: [] }
+    : customer?.employee?.is_admin
+    ? await listApprovals({ status: ApprovalStatusType.PENDING })
+    : await listCustomerApprovals({ status: ApprovalStatusType.PENDING })
 
   return (
     <div

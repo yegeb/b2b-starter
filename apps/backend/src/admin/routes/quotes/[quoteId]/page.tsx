@@ -35,8 +35,7 @@ const QuoteDetails = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { quote, isLoading } = useQuote(quoteId!, {
-    fields:
-      "*draft_order.customer,*draft_order.customer.employee,*draft_order.customer.employee.company",
+    fields: "*customer.employee,*customer.employee.company",
   });
 
   const { order: preview, isLoading: isPreviewLoading } = useOrderPreview(
@@ -122,6 +121,9 @@ const QuoteDetails = () => {
     throw "preview not found";
   }
 
+  const employee = quote.customer?.employee;
+  const company = employee?.company;
+
   return (
     <div className="flex flex-col gap-y-3">
       <div className="flex flex-col gap-x-4 lg:flex-row xl:items-start">
@@ -195,10 +197,10 @@ const QuoteDetails = () => {
 
               <Link
                 className="text-sm text-pretty text-blue-500"
-                to={`/customers/${quote.draft_order?.customer?.id}`}
+                to={`/customers/${quote.customer?.id}`}
                 onClick={(e) => e.stopPropagation()}
               >
-                {quote.draft_order?.customer?.email}
+                {quote.customer?.email}
               </Link>
             </div>
 
@@ -208,7 +210,7 @@ const QuoteDetails = () => {
               </Text>
 
               <Text size="small" leading="compact" className="text-pretty">
-                {quote.draft_order?.customer?.phone}
+                {quote.customer?.phone || "-"}
               </Text>
             </div>
 
@@ -218,11 +220,12 @@ const QuoteDetails = () => {
               </Text>
 
               <Text size="small" leading="compact" className="text-pretty">
-                {formatAmount(
-                  quote?.customer?.employee?.spending_limit,
-                  (quote?.customer?.employee?.company
-                    ?.currency_code as string) || "USD"
-                )}
+                {employee
+                  ? formatAmount(
+                      employee.spending_limit,
+                      company?.currency_code || quote.draft_order.currency_code
+                    )
+                  : "-"}
               </Text>
             </div>
           </Container>
@@ -237,13 +240,19 @@ const QuoteDetails = () => {
                 Name
               </Text>
 
-              <Link
-                className="text-sm text-pretty text-blue-500"
-                to={`/companies/${quote?.customer?.employee?.company.id}`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {quote?.customer?.employee?.company?.name}
-              </Link>
+              {company ? (
+                <Link
+                  className="text-sm text-pretty text-blue-500"
+                  to={`/companies/${company.id}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {company.name}
+                </Link>
+              ) : (
+                <Text size="small" leading="compact">
+                  -
+                </Text>
+              )}
             </div>
           </Container>
         </div>

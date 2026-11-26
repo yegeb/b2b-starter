@@ -144,6 +144,7 @@ pnpm dev
 ```text
 apps/
 ├── backend/      # Medusa v2 app: custom modules (company, quote, approval), API routes, workflows, admin extensions
+├── e2e/          # Playwright browser regression tests against a seeded backend (see apps/e2e/README.md)
 └── storefront/   # Next.js 15 App Router storefront
 ```
 

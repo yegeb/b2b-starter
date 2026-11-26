@@ -51,7 +51,8 @@ Run from the repo root unless noted. Root scripts fan out through Turborepo.
 
 - Node `>=22.23.4` is enforced (`engine-strict=true` in `.npmrc`).
 - HTTP integration tests need a reachable PostgreSQL; `@medusajs/test-utils` creates a temporary database per run.
-- Do not rely on `pnpm test`, `pnpm test:unit`, or `pnpm test:integration:modules`: no app defines `test`, and there are no `*.unit.spec.ts` or `src/modules/*/__tests__` files, so the latter two exit with "No tests found".
+- `pnpm test` runs the Vitest UI tests: `apps/storefront/src/**/*.test.tsx` and `apps/backend/src/admin/**/*.test.tsx`. It does not run the HTTP integration suites.
+- Do not rely on `pnpm test:unit` or `pnpm test:integration:modules`: there are no `*.unit.spec.ts` or `src/modules/*/__tests__` files, so they exit with "No tests found".
 
 ## Directory Structure
 
@@ -173,7 +174,7 @@ It exposes deployments, build/runtime logs, environment variables, and store dat
 - Importing from `@medusajs/utils` / `@medusajs/types` in backend server code instead of `@medusajs/framework/*`.
 - Changing a data model without running `pnpm medusa db:generate <module>` and committing the migration.
 - Running npm or yarn, which ignores `pnpm-lock.yaml` and the workspace setup.
-- Calling `pnpm test` and assuming tests passed: it runs nothing.
+- Calling `pnpm test` and assuming the backend API passed: it runs only the Vitest UI tests.
 
 ## Off-Limits
 
