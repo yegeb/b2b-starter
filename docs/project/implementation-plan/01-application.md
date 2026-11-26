@@ -6,10 +6,10 @@
 
 | Stage | Source observation | Implication |
 | --- | --- | --- |
-| Buyer requests | The confirmation component calls `createQuote`. The server action reads the cart cookie and auth headers and posts the cart ID. Store middleware authenticates the customer. The route takes the customer ID from the actor. [UI](../../../apps/storefront/src/modules/quotes/components/request-quote-confirmation/index.tsx) · [Server actions](../../../apps/storefront/src/lib/data/quotes.ts) · [Middleware](../../../apps/backend/src/api/store/quotes/middlewares.ts) · [Route](../../../apps/backend/src/api/store/quotes/route.ts) | **Reuse** the request. Verify cart ownership before creating a draft from the submitted cart. |
+| Buyer requests | The confirmation component calls `createQuote`. The server action reads the cart cookie and auth headers and posts the cart ID. Store middleware authenticates the customer. The route takes the customer ID from the actor. [UI](../../../apps/storefront/src/modules/quotes/components/request-quote-confirmation/index.tsx) · [Server actions](../../../apps/storefront/src/lib/data/quotes.ts) · [Middleware](../../../apps/backend/src/api/store/quotes/middlewares.ts) · [Route](../../../apps/backend/src/api/store/quotes/route.ts) | **Reuse** the request. Verify cart ownership before creating a draft from the submitted cart. Resolved by A4 (#36, #90): `ensureCustomerOwnsCart` checks the submitted cart. |
 | Medusa persists | The workflow reads items, currency, addresses and shipping. It creates a draft order, starts an order edit, and creates a quote linked to cart, customer, draft and order change. The model defaults to `pending_merchant`. [Workflow](../../../apps/backend/src/workflows/quote/workflows/create-request-for-quote.ts) · [Model](../../../apps/backend/src/modules/quote/models/quote.ts) | **Reuse** identifiers. Merchant edits can change prices and quantities. Capture the reviewed revision for a PDF. |
 | Merchant sends | The Admin quote page calls the send mutation. The Admin route runs the send workflow. The workflow queries the quote ID and sets `pending_customer`. It contains no PDF snapshot, revision counter or publication step. [Admin page](../../../apps/backend/src/admin/routes/quotes/%5BquoteId%5D/page.tsx) · [Route](../../../apps/backend/src/api/admin/quotes/%5Bid%5D/send/route.ts) · [Workflow](../../../apps/backend/src/workflows/quote/workflows/merchant-send-quote.ts) | **Change** the send transition to record a stable revision and durable publication intent. Define repeat-send semantics in 03 and 05. |
-| Buyer views | The account detail page fetches the quote and its order preview. The detail route scopes the query to the customer. The preview handler queries the quote by ID and calls the order module for the current preview. [Account page](../../../apps/storefront/src/app/%5BcountryCode%5D/(main)/account/@dashboard/quotes/details/%5Bid%5D/page.tsx) · [Detail route](../../../apps/backend/src/api/store/quotes/%5Bid%5D/route.ts) · [Preview route](../../../apps/backend/src/api/store/quotes/%5Bid%5D/preview/route.ts) | **Change** the preview lookup to use the same ownership scope. **Add** PDF state and authorized download. Trace ownership on all related actions before public deployment. |
+| Buyer views | The account detail page fetches the quote and its order preview. The detail route scopes the query to the customer. The preview handler queries the quote by ID and calls the order module for the current preview. [Account page](../../../apps/storefront/src/app/%5BcountryCode%5D/(main)/account/@dashboard/quotes/details/%5Bid%5D/page.tsx) · [Detail route](../../../apps/backend/src/api/store/quotes/%5Bid%5D/route.ts) · [Preview route](../../../apps/backend/src/api/store/quotes/%5Bid%5D/preview/route.ts) | **Change** the preview lookup to use the same ownership scope. **Add** PDF state and authorized download. Trace ownership on all related actions before public deployment. Resolved by A4 (#36, #90): `ensureCustomerOwnsQuote` scopes detail, preview, messages, accept and reject. |
 
 ## Other capabilities
 
@@ -114,6 +114,19 @@ The pull request checks run the same command and the backend HTTP suites against
 | Buyer | Own cart, orders, quote details, preview, messages, transitions and PDF | Repeat the valid buyer journey. After implementing ownership checks, verify a different buyer cannot read or change its records. |
 | Company approver | Admin-type approvals for that employee's company | Same-company moderation succeeds. Other company records stay private and unchanged. |
 | Merchant | Admin-authenticated order edit, quote send and catalog changes | Check Admin confirmation, buyer-visible reviewed revision and one intent per send. |
+
+**A4 ownership, implementation branch.**
+Before the fix, the new suites ran against the unfixed routes.
+In `integration-tests/http/quotes/ownership.spec.ts`, 5 of 11 tests failed.
+A buyer of another company got a success response from `GET /store/quotes/:id/preview`, `POST /store/quotes/:id/messages`, `POST /store/quotes/:id/accept`, `POST /store/quotes/:id/reject`, and `POST /store/quotes` with buyer A's cart.
+`GET /store/quotes/:id` already returned 404.
+In `integration-tests/http/approvals/company-scope.spec.ts`, 2 of 6 tests failed.
+A buyer of another company requested an approval on company A's cart, and an approver of company B approved and rejected company A's admin approval.
+After the fix, root `pnpm test:integration:http` ran with Node 22.23.4, pnpm 9.15.0, a frozen lockfile, and a PostgreSQL 16 instance for this task only.
+5 suites passed, 32 tests passed, 0 failed: `http/quotes/ownership.spec.ts` 11, `http/approvals/company-scope.spec.ts` 6, `http/quotes/quotes.spec.ts` 7, `http/companies/companies.spec.ts` 7, `http/admin/quotes/quotes.spec.ts` 1.
+`http/quotes/quotes.spec.ts` is the existing quote journey: create, merchant send, accept, reject.
+The browser buyer journey from A3 was not part of this check.
+[Ownership middleware](../../../apps/backend/src/api/middlewares/ensure-ownership.ts) · [HTTP suites](../../../apps/backend/integration-tests/http)
 
 | ID · owner | Prerequisite | Task and acceptance evidence |
 | --- | --- | --- |
