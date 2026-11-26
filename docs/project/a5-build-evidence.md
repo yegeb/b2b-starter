@@ -139,7 +139,8 @@ These routes set `dynamicParams = true`, so their pages then render on demand.
 4. It migrates and seeds that database, builds the backend and creates a generated admin user.
 5. It starts the API, waits for its health endpoint and reads the seeded publishable key through the Admin API.
 6. It builds the storefront again against that API.
-7. It stops the API, drops the database it created and removes the temporary copy, also when a step fails.
+7. It stops the processes it started, drops the database it created and removes the temporary copy.
+   It also does this when a step fails or when it receives SIGINT, SIGTERM or SIGHUP.
 8. It writes each log and `summary.json` to `BUILD_CHECK_OUTPUT_DIR` or a temporary directory.
 
 The check fails if either storefront build exits with a nonzero status.

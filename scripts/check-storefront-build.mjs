@@ -20,8 +20,9 @@
 // checkout to a temporary directory, installs dependencies there with
 // `pnpm install --frozen-lockfile`, and runs every build, migration and the API
 // from that copy. It does not change build outputs or `.env` files in this
-// checkout. When it ends, also on failure, it stops the API it started, drops
-// the database it created and removes the temporary copy.
+// checkout. When it ends, also on failure or on SIGINT, SIGTERM or SIGHUP, it
+// stops the processes it started, drops the database it created and removes
+// the temporary copy.
 
 import { spawn } from "node:child_process"
 import { randomBytes } from "node:crypto"
@@ -98,11 +99,25 @@ function freePort() {
   })
 }
 
+const children = new Set()
+let interrupted = null
+
+// Start a child process that cleanup stops. Refuse to start one after an
+// interrupt, so no process outlives the cleanup.
+function start(command, args, options) {
+  if (interrupted) throw new Error(`The check was interrupted by ${interrupted}.`)
+  const child = spawn(command, args, { ...options, detached: true })
+  children.add(child)
+  child.once("close", () => children.delete(child))
+  child.once("error", () => children.delete(child))
+  return child
+}
+
 // Run a command, write its output to a log file and return its exit status.
 function run(command, args, { cwd, env, log }) {
   return new Promise((done, fail) => {
     const stream = createWriteStream(log)
-    const child = spawn(command, args, { cwd, env, stdio: ["ignore", "pipe", "pipe"] })
+    const child = start(command, args, { cwd, env, stdio: ["ignore", "pipe", "pipe"] })
     child.stdout.pipe(stream, { end: false })
     child.stderr.pipe(stream, { end: false })
     child.on("error", fail)
@@ -117,7 +132,7 @@ function run(command, args, { cwd, env, log }) {
 async function copyCheckout() {
   const log = join(outputDir, "workspace-copy.log")
   const listing = await new Promise((done, fail) => {
-    const child = spawn(
+    const child = start(
       "git",
       ["ls-files", "-z", "--cached", "--others", "--exclude-standard"],
       { cwd: checkout, stdio: ["ignore", "pipe", "inherit"] }
@@ -256,23 +271,67 @@ async function publishableKey(url, email, password) {
 }
 
 function stop(child) {
-  if (!child || child.exitCode !== null || child.signalCode !== null) {
+  if (!child.pid || child.exitCode !== null || child.signalCode !== null) {
     return Promise.resolve()
   }
+  const signalGroup = (signal) => {
+    try {
+      process.kill(-child.pid, signal)
+    } catch {
+      child.kill(signal)
+    }
+  }
   return new Promise((done) => {
-    const timer = setTimeout(() => child.kill("SIGKILL"), 10_000)
+    const timer = setTimeout(() => signalGroup("SIGKILL"), 10_000)
     child.once("exit", () => {
       clearTimeout(timer)
       done()
     })
-    child.kill("SIGTERM")
+    signalGroup("SIGTERM")
   })
 }
 
 const results = []
 const errors = []
-let api
 let databaseCreated = false
+let cleanup
+
+// Stop every child process, drop the database the check created and remove
+// the temporary copy. Run it once, after the checks or on an interrupt.
+function cleanUp() {
+  cleanup ??= (async () => {
+    await Promise.all([...children].map(stop))
+    if (databaseCreated) {
+      try {
+        await withDatabaseServer((client) =>
+          client.query(`DROP DATABASE IF EXISTS "${databaseName}" WITH (FORCE)`)
+        )
+      } catch (error) {
+        errors.push(
+          `Dropping the check database ${databaseName} failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        )
+      }
+    }
+    await rm(root, { recursive: true, force: true })
+  })()
+  return cleanup
+}
+
+for (const [signal, status] of [
+  ["SIGINT", 130],
+  ["SIGTERM", 143],
+  ["SIGHUP", 129],
+]) {
+  process.once(signal, async () => {
+    interrupted = signal
+    console.error(`Interrupted by ${signal}. Cleaning up.`)
+    await cleanUp()
+    for (const error of errors) console.error(`FAIL: ${error}`)
+    process.exit(status)
+  })
+}
 
 try {
   await copyCheckout()
@@ -292,8 +351,8 @@ try {
   )
 
   // 2. Seeded API available.
-  await withDatabaseServer((client) => client.query(`CREATE DATABASE "${databaseName}"`))
   databaseCreated = true
+  await withDatabaseServer((client) => client.query(`CREATE DATABASE "${databaseName}"`))
   await step("backend-migrate", medusaBin, ["db:migrate"], { cwd: backendDir, env: backendEnv })
   await step("backend-build", "pnpm", ["--filter", "@b2b-starter/backend", "build"], {
     cwd: root,
@@ -309,14 +368,16 @@ try {
   const apiPort = await freePort()
   const apiUrl = `http://localhost:${apiPort}`
   const apiLog = createWriteStream(join(outputDir, "backend-start.log"))
-  api = spawn(medusaBin, ["start", "--port", String(apiPort)], {
+  const api = start(medusaBin, ["start", "--port", String(apiPort)], {
     cwd: join(backendDir, ".medusa/server"),
     env: { ...backendEnv, NODE_ENV: "production" },
     stdio: ["ignore", "pipe", "pipe"],
   })
+  const apiFailed = new Promise((_, fail) => api.once("error", fail))
+  apiFailed.catch(() => {})
   api.stdout.pipe(apiLog)
   api.stderr.pipe(apiLog)
-  await waitForHealth(apiUrl, api)
+  await Promise.race([waitForHealth(apiUrl, api), apiFailed])
 
   results.push(
     await buildStorefront("storefront-api-available", {
@@ -328,21 +389,7 @@ try {
 } catch (error) {
   errors.push(error instanceof Error ? error.message : String(error))
 } finally {
-  await stop(api)
-  if (databaseCreated) {
-    try {
-      await withDatabaseServer((client) =>
-        client.query(`DROP DATABASE IF EXISTS "${databaseName}" WITH (FORCE)`)
-      )
-    } catch (error) {
-      errors.push(
-        `Dropping the check database ${databaseName} failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      )
-    }
-  }
-  await rm(root, { recursive: true, force: true })
+  await cleanUp()
 }
 
 for (const result of results) {
