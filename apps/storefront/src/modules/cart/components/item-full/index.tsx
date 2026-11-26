@@ -91,6 +91,7 @@ const ItemFull = ({
       className={clx("flex gap-4 w-full h-full items-center justify-between", {
         "shadow-none": !showBorders,
       })}
+      data-testid="cart-item"
     >
       <div className="flex gap-x-4 items-start">
         <LocalizedClientLink href={`/products/${item.product_handle}`}>
@@ -142,6 +143,7 @@ const ItemFull = ({
                           : "opacity-100"
                       )}
                       type="number"
+                      aria-label={`Quantity for ${item.variant?.title ?? item.title}`}
                       value={quantity}
                       onChange={(e) => {
                         setQuantity(e.target.value)

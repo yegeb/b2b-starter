@@ -13,6 +13,12 @@ export type Fixtures = {
   colleague: Credentials
   approver: Credentials
   otherBuyer: Credentials
+  shopper: Credentials
+  laptop: {
+    handle: string
+    title: string
+    variants: { title: string; sku: string }[]
+  }
   carts: { buyer: string; colleague: string; otherCompany: string }
   quote: { id: string; draftOrderId: string }
 }
@@ -21,6 +27,19 @@ export const fixtures = JSON.parse(
   readFileSync(required("E2E_FIXTURES"), "utf8")
 ) as Fixtures
 export const backendUrl = required("E2E_BACKEND_URL")
+
+export type ServerBackendRequest = {
+  method: string
+  path: string
+  origin: string | null
+}
+
+// The requests that the storefront server sent to its server-side backend URL.
+export const serverBackendRequests = () =>
+  readFileSync(required("E2E_SERVER_BACKEND_LOG"), "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as ServerBackendRequest)
 
 // Approval cards label a cart with the last four characters of its ID.
 export const cartLabel = (cartId: string) => `#${cartId.slice(-4)}`
