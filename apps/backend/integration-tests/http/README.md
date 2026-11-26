@@ -42,3 +42,14 @@ For a local PostgreSQL instance without TLS, use `localhost` as `DB_HOST`.
 The installed Medusa test runner enables TLS for other host strings.
 Set `JWT_SECRET` and `COOKIE_SECRET` to test-only values if the suites need them.
 Never use production or demo credentials for this command.
+
+## A1 recorded run
+
+The A1 run used Node 22.23.4, pnpm 9.15.0, a frozen lockfile, and a dedicated PostgreSQL 16 instance.
+The final run passed all 15 tests with 0 failures: 7 store quotes, 7 companies, and 1 admin quote messages.
+
+Before repairs, all three suites failed to load the ESM fixture.
+After the loader and database configuration repairs, seven cart setup cases failed with HTTP 400 and eight admin-authenticated cases failed with HTTP 401.
+After the fixture repairs, 14 tests passed and the quote summary assertion failed.
+The final run passed after the assertion was updated.
+See issue #33 for the recorded results.
