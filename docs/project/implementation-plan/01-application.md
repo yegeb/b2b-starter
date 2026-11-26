@@ -122,9 +122,28 @@ A buyer of another company got a success response from `GET /store/quotes/:id/pr
 `GET /store/quotes/:id` already returned 404.
 In `integration-tests/http/approvals/company-scope.spec.ts`, 2 of 6 tests failed.
 A buyer of another company requested an approval on company A's cart, and an approver of company B approved and rejected company A's admin approval.
-After the fix, root `pnpm test:integration:http` ran with Node 22.23.4, pnpm 9.15.0, a frozen lockfile, and a PostgreSQL 16 instance for this task only.
-5 suites passed, 32 tests passed, 0 failed: `http/quotes/ownership.spec.ts` 11, `http/approvals/company-scope.spec.ts` 6, `http/quotes/quotes.spec.ts` 7, `http/companies/companies.spec.ts` 7, `http/admin/quotes/quotes.spec.ts` 1.
+For the Store company routes (#102, #110), `integration-tests/http/companies/company-scope.spec.ts` with the updated `companies.spec.ts` gave 20 failed, 15 passed, 35 total.
+The admin of another company read, changed, and deleted company A, its employees, and its approval settings.
+A non-admin employee changed and deleted the company.
+The employee list returned HTTP 500 for every caller.
+For the backend type check (#103, #109), `tsc --noEmit -p .` exited with status 2 and 5 errors.
+The errors were TS2353 `inApp` in three HTTP specs, TS2339 `default` in `integration-tests/utils/admin.ts`, and TS2741 in `src/admin/routes/quotes/components/quote-manage/manage-items-section.tsx`.
+After the fix, at commit `1fdee54`, root `pnpm test:integration:http` ran with Node 22.23.4, pnpm 9.15.0, a frozen lockfile, and a PostgreSQL 16 instance for this task only.
+6 suites passed, 60 tests passed, 0 failed.
+
+| Suite | Issues | Tests passed |
+| --- | --- | --- |
+| `http/companies/company-scope.spec.ts` | #102, #110 | 28 |
+| `http/quotes/ownership.spec.ts` | #36, #90 | 11 |
+| `http/approvals/company-scope.spec.ts` | #36 | 6 |
+| `http/companies/companies.spec.ts` | #102 | 7 |
+| `http/quotes/quotes.spec.ts` | #36 | 7 |
+| `http/admin/quotes/quotes.spec.ts` | - | 1 |
+
+`http/companies/companies.spec.ts` changed: the company creator joins as its first admin, as storefront sign-up does, and deleting an unreachable company now expects 404 instead of 204.
 `http/quotes/quotes.spec.ts` is the existing quote journey: create, merchant send, accept, reject.
+`pnpm --filter @b2b-starter/backend typecheck` (`tsc --noEmit -p .`) exited with status 0 and no errors (#103).
+`pnpm --filter @b2b-starter/backend exec tsc --noEmit -p src/admin/tsconfig.json` exited with status 0 and no errors (#109).
 The browser buyer journey from A3 was not part of this check.
 [Ownership middleware](../../../apps/backend/src/api/middlewares/ensure-ownership.ts) · [HTTP suites](../../../apps/backend/integration-tests/http)
 
