@@ -29,7 +29,9 @@ The database is separate from the HTTP integration test database.
 
 Company A approval settings `apprset_01M8BAE7R38PDMCVKY84BN4T29` require admin approval and do not require sales manager approval.
 Company B has both approval types disabled.
-Synthetic sign-in details and operational logs remain in the task-local handoff directory, outside the repository.
+Request the private handoff location from the person who prepared the fixtures for [issue 34](https://github.com/yegeb/b2b-starter/issues/34).
+The handoff contains synthetic sign-in details and operational logs outside the repository.
+Request the storefront publishable key through the same private channel.
 
 ## Fixture checks
 
