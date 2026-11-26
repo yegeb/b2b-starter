@@ -81,6 +81,7 @@ Each test below failed on the code before its fix and passed after it.
 | Issue | Change | Regression test |
 | --- | --- | --- |
 | [98](https://github.com/yegeb/b2b-starter/issues/98) | Add the storefront test runner. | An ordinary employee's account layout and orders page render without a call to the approval list. A company admin still gets the pending count and the **Pending Approvals** list. Before the role check, the buyer cases failed with `Forbidden`. |
+| [101](https://github.com/yegeb/b2b-starter/issues/101) | Add `GET /store/customers/me/approvals`, which returns only the signed-in customer's carts with approval requests. The orders page lists an ordinary employee's own pending carts from it. | HTTP tests cover a buyer, a colleague, another company's employee, a company admin, the status filter and an anonymous request. Before the route existed, the four tests that call it failed with 404. The orders page test failed before the view existed. |
 | [104](https://github.com/yegeb/b2b-starter/issues/104) | Show "Only company admins can review approval requests." on the approvals page for other employees, without loading the approval lists. | Before the fix, the page rendered the admin lists for an ordinary employee. In the browser, the lists returned 403 and the page showed a server error. |
 | [89](https://github.com/yegeb/b2b-starter/issues/89) | Request `customer.employee.company` for the Admin quote page. Show `-` without an employee or company. | The page showed `$NaN` before the fix. It now shows the spending limit in the company currency and the company link. The test also fails if the page stops requesting the company. |
 | [96](https://github.com/yegeb/b2b-starter/issues/96) | Store the unformatted price value. Send an update only for a valid changed price. | Before the fix, deleting one digit from `1,500` displayed `NaN`, and an unchanged field sent updates. The edit now saves 150. |
@@ -92,6 +93,20 @@ Focusing and leaving the field without a change sent no update.
 An ordinary buyer who opened `/dk/account/approvals` saw the not-available message, and the storefront sent no approvals request.
 The company admin still saw the pending, approved and rejected lists.
 The Admin type check has one error in `manage-items-section.tsx` that also occurs on the base revision, tracked in [issue 109](https://github.com/yegeb/b2b-starter/issues/109).
+
+### A3 browser regression tests
+
+`pnpm test:e2e` runs Playwright against a freshly migrated database, tracked in [issue 98](https://github.com/yegeb/b2b-starter/issues/98).
+The script starts the backend and the storefront and creates synthetic fixtures through the APIs.
+[The e2e README](../../../apps/e2e/README.md) describes the local command.
+The pull request checks run the same command and the backend HTTP suites against a PostgreSQL service container.
+
+| Scenario | Result after the fixes | Result on the base revision `0bfdb2c` |
+| --- | --- | --- |
+| An ordinary employee's account, orders and approvals pages | Pass. No **Approvals** link, only the buyer's own pending cart, and the not-available message on the approvals page. | Fail. The account page did not render after sign-in. |
+| A company admin's navigation, approvals and orders pages | Pass. **Approvals 2**, both colleagues' carts listed, no cart from another company. | Pass. The admin view was not affected. |
+| Admin quote details | Pass. The buyer email, `$1,000.00` in the company currency, and the company link. | Fail. `Spending Limit$NaN`. |
+| Admin grouped price edit | Pass. `1,500` became `150` after one Backspace, and the line showed EUR 150.00. | Fail. The field showed `NaN`. |
 
 | Actor | Intended scope for A4 | Acceptance fixture |
 | --- | --- | --- |
