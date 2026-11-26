@@ -133,24 +133,28 @@ These routes set `dynamicParams = true`, so their pages then render on demand.
 [Issue 91](https://github.com/yegeb/b2b-starter/issues/91) asks for a repeatable regression check.
 `scripts/check-storefront-build.mjs` implements it:
 
-1. It builds the storefront with the API URL at a free loopback port where nothing listens.
-2. It migrates and seeds the database at `BUILD_CHECK_DATABASE_URL`, builds the backend and creates a generated admin user.
-3. It starts the API, waits for its health endpoint and reads the seeded publishable key through the Admin API.
-4. It builds the storefront again against that API.
-5. It stops the API and writes each log and `summary.json` to `BUILD_CHECK_OUTPUT_DIR` or a temporary directory.
+1. It copies the tracked and untracked, not ignored, files of the checkout to a temporary directory and runs `pnpm install --frozen-lockfile` there.
+2. It builds the storefront in that copy with the API URL at a free loopback port where nothing listens.
+3. It creates a database with a unique `build_check_<random>` name on the PostgreSQL server at `BUILD_CHECK_DATABASE_URL`.
+4. It migrates and seeds that database, builds the backend and creates a generated admin user.
+5. It starts the API, waits for its health endpoint and reads the seeded publishable key through the Admin API.
+6. It builds the storefront again against that API.
+7. It stops the API, drops the database it created and removes the temporary copy, also when a step fails.
+8. It writes each log and `summary.json` to `BUILD_CHECK_OUTPUT_DIR` or a temporary directory.
 
 The check fails if either storefront build exits with a nonzero status.
 It reports the failing stage and route from the Next.js output.
 It also fails if the seeded build prerenders no product page.
 It generates the backend secrets and the admin credentials for each run.
-`BUILD_CHECK_DATABASE_URL` must point to a disposable database for the check only.
-The check does not drop that database.
+The connection in `BUILD_CHECK_DATABASE_URL` must have permission to create databases.
+The check does not change the database in that URL or any other database that it did not create.
+The check does not change `apps/storefront/.next`, `apps/backend/.medusa` or the `.env` files in the checkout.
+Ignored files such as `.env` files are not copied, so they cannot point a build at another API.
 
-To run the check locally:
+To run the check locally, with git, Node and pnpm on `PATH`:
 
 ```bash
-pnpm install --frozen-lockfile
-BUILD_CHECK_DATABASE_URL=postgres://<user>:<password>@localhost:<port>/<disposable-db> \
+BUILD_CHECK_DATABASE_URL=postgres://<user>:<password>@localhost:<port>/<database> \
   node scripts/check-storefront-build.mjs
 ```
 
@@ -175,6 +179,24 @@ Failed to generate static paths for category pages: Error setting up the request
 Failed to generate static paths for collection pages: fetch failed. These pages render on demand.
 Failed to generate static paths for product pages: Error setting up the request: fetch failed. These pages render on demand.
 ```
+
+### Results with the isolated check
+
+On 26 November 2026 the isolated version of the check ran in a `node:22-bookworm` container with Node 22.23.5 and pnpm 9.15.0.
+The checkout for this run was a copy of this branch's files with a new local git commit.
+Before the run, that checkout had sentinel files in `apps/storefront/.next` and `apps/backend/.medusa/server`.
+It also had an ignored `apps/storefront/.env.local` that set `MEDUSA_BACKEND_URL` and `NEXT_PUBLIC_MEDUSA_BACKEND_URL` to a closed port.
+`BUILD_CHECK_DATABASE_URL` pointed to a PostgreSQL 16 container that was created for this task only.
+
+| Run | API unavailable | Seeded API available | Check result |
+| --- | --- | --- | --- |
+| Isolated check | Exit 0. 15 of 15 pages, with no product pages prerendered. | Exit 0. 106 of 106 pages, including 56 product pages. | Pass, exit 0 |
+
+The check copied 733 files and installed dependencies in its temporary copy.
+After the run, both sentinel files were unchanged and the checkout had no `node_modules` directory.
+The temporary copy was removed.
+The database server had the same databases as before the run, so the check dropped the database it created.
+The ignored `.env.local` did not affect the seeded build, which reached the API that the check started.
 
 A build without the API produces no prerendered catalog pages.
 Its catalog pages need the API at request time.

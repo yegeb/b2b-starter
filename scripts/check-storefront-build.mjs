@@ -6,40 +6,45 @@
 //      the seeded product pages.
 //
 // Requirements:
-//   - BUILD_CHECK_DATABASE_URL: a disposable PostgreSQL database for this
-//     check only. The check migrates and seeds it. Never use a shared or
-//     demo database.
-//   - Installed workspace dependencies (`pnpm install --frozen-lockfile`).
+//   - BUILD_CHECK_DATABASE_URL: a PostgreSQL connection with permission to
+//     create databases. The check creates a uniquely named database
+//     (build_check_<random>) on that server and drops it when it ends. It does
+//     not change any other database.
+//   - git and pnpm on PATH, and access to the package registry or store.
 //
 // Optional:
 //   - BUILD_CHECK_OUTPUT_DIR: directory for logs and summary.json.
 //   - BUILD_CHECK_REGION: seeded country code for the storefront (default dk).
 //
-// The check stops the API process it starts and replaces the storefront and
-// backend build outputs. It leaves the seed data and a generated admin user in
-// the disposable database. It does not drop the database.
+// The check copies the tracked and untracked, not ignored, files of this
+// checkout to a temporary directory, installs dependencies there with
+// `pnpm install --frozen-lockfile`, and runs every build, migration and the API
+// from that copy. It does not change build outputs or `.env` files in this
+// checkout. When it ends, also on failure, it stops the API it started, drops
+// the database it created and removes the temporary copy.
 
 import { spawn } from "node:child_process"
 import { randomBytes } from "node:crypto"
 import { createWriteStream } from "node:fs"
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { createRequire } from "node:module"
 import { createServer } from "node:net"
 import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
-const backendDir = join(root, "apps/backend")
-const storefrontDir = join(root, "apps/storefront")
-const medusaBin = join(backendDir, "node_modules/.bin/medusa")
+const checkout = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 
-const databaseUrl = process.env.BUILD_CHECK_DATABASE_URL
-if (!databaseUrl) {
+const serverUrl = process.env.BUILD_CHECK_DATABASE_URL
+if (!serverUrl) {
   console.error(
-    "Set BUILD_CHECK_DATABASE_URL to a disposable PostgreSQL database for this check."
+    "Set BUILD_CHECK_DATABASE_URL to a PostgreSQL connection that can create databases."
   )
   process.exit(2)
 }
+const databaseName = `build_check_${randomBytes(6).toString("hex")}`
+const databaseUrl = new URL(serverUrl)
+databaseUrl.pathname = `/${databaseName}`
 const region = process.env.BUILD_CHECK_REGION || "dk"
 const outputDir = process.env.BUILD_CHECK_OUTPUT_DIR
   ? resolve(process.env.BUILD_CHECK_OUTPUT_DIR)
@@ -64,9 +69,14 @@ for (const name of Object.keys(inherited)) {
   }
 }
 
+const root = await mkdtemp(join(tmpdir(), "storefront-build-check-src-"))
+const backendDir = join(root, "apps/backend")
+const storefrontDir = join(root, "apps/storefront")
+const medusaBin = join(backendDir, "node_modules/.bin/medusa")
+
 const backendEnv = {
   ...inherited,
-  DATABASE_URL: databaseUrl,
+  DATABASE_URL: databaseUrl.href,
   JWT_SECRET: randomBytes(32).toString("hex"),
   COOKIE_SECRET: randomBytes(32).toString("hex"),
   STORE_CORS: "http://localhost:8000",
@@ -100,6 +110,49 @@ function run(command, args, { cwd, env, log }) {
       stream.end(() => done(code ?? (signal ? 128 : 1)))
     })
   })
+}
+
+// Copy the files git would commit, without ignored build outputs, .env files
+// or node_modules.
+async function copyCheckout() {
+  const log = join(outputDir, "workspace-copy.log")
+  const listing = await new Promise((done, fail) => {
+    const child = spawn(
+      "git",
+      ["ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+      { cwd: checkout, stdio: ["ignore", "pipe", "inherit"] }
+    )
+    const chunks = []
+    child.stdout.on("data", (chunk) => chunks.push(chunk))
+    child.on("error", fail)
+    child.on("close", (code) =>
+      code === 0
+        ? done(Buffer.concat(chunks).toString("utf8"))
+        : fail(new Error(`git ls-files exited with status ${code}.`))
+    )
+  })
+  const files = [...new Set(listing.split("\0").filter(Boolean))]
+  let copied = 0
+  for (const file of files) {
+    try {
+      await cp(join(checkout, file), join(root, file), { recursive: true })
+      copied++
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error
+    }
+  }
+  await writeFile(log, `Copied ${copied} files from ${checkout} to ${root}.\n`)
+}
+
+async function withDatabaseServer(action) {
+  const { Client } = createRequire(join(backendDir, "package.json"))("pg")
+  const client = new Client({ connectionString: serverUrl })
+  await client.connect()
+  try {
+    return await action(client)
+  } finally {
+    await client.end()
+  }
 }
 
 async function step(name, command, args, options) {
@@ -219,8 +272,15 @@ function stop(child) {
 const results = []
 const errors = []
 let api
+let databaseCreated = false
 
 try {
+  await copyCheckout()
+  await step("workspace-install", "pnpm", ["install", "--frozen-lockfile"], {
+    cwd: root,
+    env: inherited,
+  })
+
   // 1. API unavailable: point the build at a port where nothing listens.
   const unusedPort = await freePort()
   results.push(
@@ -232,6 +292,8 @@ try {
   )
 
   // 2. Seeded API available.
+  await withDatabaseServer((client) => client.query(`CREATE DATABASE "${databaseName}"`))
+  databaseCreated = true
   await step("backend-migrate", medusaBin, ["db:migrate"], { cwd: backendDir, env: backendEnv })
   await step("backend-build", "pnpm", ["--filter", "@b2b-starter/backend", "build"], {
     cwd: root,
@@ -267,6 +329,20 @@ try {
   errors.push(error instanceof Error ? error.message : String(error))
 } finally {
   await stop(api)
+  if (databaseCreated) {
+    try {
+      await withDatabaseServer((client) =>
+        client.query(`DROP DATABASE IF EXISTS "${databaseName}" WITH (FORCE)`)
+      )
+    } catch (error) {
+      errors.push(
+        `Dropping the check database ${databaseName} failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      )
+    }
+  }
+  await rm(root, { recursive: true, force: true })
 }
 
 for (const result of results) {
