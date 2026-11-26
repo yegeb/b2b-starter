@@ -1,7 +1,8 @@
+import { retrieveCustomer } from "@/lib/data/customer"
 import ApprovedApprovalRequestsAdminList from "@/modules/account/components/approval-requests-admin-list/approved-list"
 import PendingApprovalRequestsAdminList from "@/modules/account/components/approval-requests-admin-list/pending-list"
 import RejectedApprovalRequestsAdminList from "@/modules/account/components/approval-requests-admin-list/rejected-list"
-import { Heading } from "@medusajs/ui"
+import { Heading, Text } from "@medusajs/ui"
 import { Metadata } from "next"
 import { Suspense } from "react"
 
@@ -15,6 +16,20 @@ export default async function Approvals({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  const customer = await retrieveCustomer()
+
+  // Only company admins may list approval requests.
+  if (!customer?.employee?.is_admin) {
+    return (
+      <div className="w-full flex flex-col gap-y-4">
+        <Heading>Approvals</Heading>
+        <Text className="text-neutral-600">
+          Only company admins can review approval requests.
+        </Text>
+      </div>
+    )
+  }
+
   const urlSearchParams = await searchParams
 
   return (

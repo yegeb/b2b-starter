@@ -1,3 +1,4 @@
+import Approvals from "@/app/[countryCode]/(main)/account/@dashboard/approvals/page"
 import Orders from "@/app/[countryCode]/(main)/account/@dashboard/orders/page"
 import { listApprovals } from "@/lib/data/approvals"
 import { retrieveCompany } from "@/lib/data/companies"
@@ -20,6 +21,19 @@ vi.mock("@/modules/account/components/account-nav", () => ({
     <nav>Pending approvals: {numPendingApprovals}</nav>
   ),
 }))
+// Each list loads approvals from the admin-only Store API when it renders.
+vi.mock(
+  "@/modules/account/components/approval-requests-admin-list/pending-list",
+  () => ({ default: () => <p>Pending approval list</p> })
+)
+vi.mock(
+  "@/modules/account/components/approval-requests-admin-list/approved-list",
+  () => ({ default: () => <p>Approved approval list</p> })
+)
+vi.mock(
+  "@/modules/account/components/approval-requests-admin-list/rejected-list",
+  () => ({ default: () => <p>Rejected approval list</p> })
+)
 vi.mock("@/modules/account/components/order-overview", () => ({
   default: () => <div>Order overview</div>,
 }))
@@ -133,5 +147,35 @@ describe("orders page", () => {
     })
     expect(screen.getByText("Pending Approvals")).toBeTruthy()
     expect(screen.getByText(pendingCart.id)).toBeTruthy()
+  })
+})
+
+describe("approvals page", () => {
+  const renderApprovalsFor = async (customer: B2BCustomer) => {
+    vi.mocked(retrieveCustomer).mockResolvedValue(customer)
+
+    render(
+      (await Approvals({ searchParams: Promise.resolve({}) })) as ReactElement
+    )
+  }
+
+  it("tells an ordinary employee that approvals are not available", async () => {
+    await renderApprovalsFor(buyer)
+
+    expect(
+      screen.getByText("Only company admins can review approval requests.")
+    ).toBeTruthy()
+    expect(screen.queryByText(/approval list/)).toBeNull()
+  })
+
+  it("lists approval requests for a company admin", async () => {
+    await renderApprovalsFor(approver)
+
+    expect(screen.getByText("Pending approval list")).toBeTruthy()
+    expect(screen.getByText("Approved approval list")).toBeTruthy()
+    expect(screen.getByText("Rejected approval list")).toBeTruthy()
+    expect(
+      screen.queryByText("Only company admins can review approval requests.")
+    ).toBeNull()
   })
 })
