@@ -7,6 +7,7 @@ export { openPage, storefrontUrl }
 type Credentials = { email: string; password: string; customerId: string }
 
 export type Fixtures = {
+  publishableKey: string
   admin: { email: string; password: string }
   companyA: { id: string; name: string }
   buyer: Credentials
@@ -14,12 +15,18 @@ export type Fixtures = {
   approver: Credentials
   otherBuyer: Credentials
   shopper: Credentials
+  lateApprovalBuyer: Credentials
   laptop: {
     handle: string
     title: string
     variants: { title: string; sku: string }[]
   }
-  carts: { buyer: string; colleague: string; otherCompany: string }
+  carts: {
+    buyer: string
+    colleague: string
+    otherCompany: string
+    lateApproval: string
+  }
   quote: { id: string; draftOrderId: string }
 }
 

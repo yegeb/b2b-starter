@@ -172,10 +172,13 @@ export const createFixtures = async ({ backendUrl, admin, runId }) => {
   const otherBuyer = await createEmployee("other-buyer", companyB)
   // Starts without a cart, so the browser creates the shopper's first one.
   const shopper = await createEmployee("shopper", companyB)
+  // Owns a cart that the browser test sends for approval after the page loads.
+  const lateApprovalBuyer = await createEmployee("late-approval-buyer", companyB)
 
   const buyerCartId = await requestApproval(buyer)
   const colleagueCartId = await requestApproval(colleague)
   const otherCompanyCartId = await requestApproval(otherBuyer)
+  const lateApprovalCartId = await createCart(lateApprovalBuyer)
 
   const quoteCartId = await createCart(buyer)
   const { quote } = await call("/store/quotes", {
@@ -198,6 +201,7 @@ export const createFixtures = async ({ backendUrl, admin, runId }) => {
     approver: credentials(approver),
     otherBuyer: credentials(otherBuyer),
     shopper: credentials(shopper),
+    lateApprovalBuyer: credentials(lateApprovalBuyer),
     laptop: {
       handle: laptop.handle,
       title: laptop.title,
@@ -207,6 +211,7 @@ export const createFixtures = async ({ backendUrl, admin, runId }) => {
       buyer: buyerCartId,
       colleague: colleagueCartId,
       otherCompany: otherCompanyCartId,
+      lateApproval: lateApprovalCartId,
     },
     quote: { id: quote.id, draftOrderId: quote.draft_order_id },
   }

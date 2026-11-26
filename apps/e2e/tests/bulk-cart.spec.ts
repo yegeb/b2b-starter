@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test"
 import {
+  backendUrl,
   fixtures,
   openPage,
   serverBackendRequests,
@@ -7,7 +8,7 @@ import {
   storefrontUrl,
 } from "./fixtures"
 
-const { buyer, carts, laptop, shopper } = fixtures
+const { carts, laptop, lateApprovalBuyer, publishableKey, shopper } = fixtures
 const quantities = new Map([
   ["256 GB / Blue", 2],
   ["512 GB / Red", 3],
@@ -87,19 +88,52 @@ test("a bulk add of two laptop variants persists in the cart through the server-
 
 test("a bulk add that the backend refuses shows an error and leaves the cart unchanged", async ({
   page,
+  request,
 }) => {
-  // The buyer's fixture cart waits for approval, so the backend refuses new items.
-  await signInToStorefront(page, buyer)
-  await page
-    .context()
-    .addCookies([
-      { name: "_medusa_cart_id", value: carts.buyer, url: storefrontUrl },
-    ])
+  await signInToStorefront(page, lateApprovalBuyer)
+  await page.context().addCookies([
+    {
+      name: "_medusa_cart_id",
+      value: carts.lateApproval,
+      url: storefrontUrl,
+    },
+  ])
 
   const addToCart = await openLaptopPage(page)
   await quantityInput(page, "256 GB / Blue").fill("1")
+
+  // The cart waits for approval only after the page loaded it, so the
+  // storefront sends the items and the backend refuses them.
+  const { token } = await (
+    await request.post(`${backendUrl}/auth/customer/emailpass`, {
+      data: {
+        email: lateApprovalBuyer.email,
+        password: lateApprovalBuyer.password,
+      },
+    })
+  ).json()
+  const approval = await request.post(
+    `${backendUrl}/store/carts/${carts.lateApproval}/approvals`,
+    {
+      headers: {
+        authorization: `Bearer ${token}`,
+        "x-publishable-api-key": publishableKey,
+      },
+      data: {},
+    }
+  )
+  expect(approval.ok()).toBe(true)
+
   await addToCart.click()
 
+  const bulkAdd = `/store/carts/${carts.lateApproval}/line-items/bulk`
+  await expect
+    .poll(() =>
+      serverBackendRequests().some(
+        ({ method, path }) => method === "POST" && path === bulkAdd
+      )
+    )
+    .toBe(true)
   await expect(page.getByText("Cart is locked for approval.")).toBeVisible()
 
   await openPage(page, `${storefrontUrl}/dk/cart`)
