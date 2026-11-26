@@ -6,7 +6,7 @@ The backend uses in-memory coordination and the images include development depen
 They are for local inspection, not a production deployment.
 
 Run these commands from the repository root with Docker Desktop or another Docker engine running.
-The commands use ports 18000 and 19000 and create containers with the `b2b-preview-` prefix.
+The commands use ports 18000 and 19000 and create containers, a network and images with the `b2b-preview-` prefix.
 Use different names and ports if those are already in use.
 The database is stored in the PostgreSQL container, so preserve that container while you need its data.
 
@@ -75,7 +75,7 @@ preview_build_network=host
 preview_build_backend=http://127.0.0.1:19000
 ```
 
-The `Linux container build networking check` job in the pull request checks runs steps 1 to 5 with the host network on a Linux engine, except the admin user creation in step 2.
+The `Linux container build networking check` job in the pull request checks runs steps 1 to 6 with the host network on a Linux engine, except the admin user creation in step 2.
 To run it on your own Linux engine, use `node scripts/check-linux-container-build.mjs`.
 It uses new names and free ports, and removes the containers, network, and images that it creates.
 
@@ -112,11 +112,35 @@ Open `http://localhost:18000` for the store and `http://localhost:19000/app` for
 The demo admin login is `admin@demo.local` with password `demo-admin-2026`.
 The backend and database are local demo instances with sample data.
 
-To repeat the browser regression check, set `CHROME_PATH` to a Chrome or Chromium executable and run:
+6. Check the catalog in a browser.
+
+Install the repository dependencies with Node 22.23.4 or later and pnpm 9.15.0.
+Then install the Playwright browser once and run the check:
 
 ```sh
-CHROME_PATH=/path/to/chrome node scripts/verify-local-preview.mjs
+pnpm install --frozen-lockfile
+pnpm --filter @b2b-starter/e2e exec playwright install chromium
+node scripts/verify-local-preview.mjs
 ```
 
-The check opens the seeded store in a temporary browser profile and checks that product search returns the sample catalog.
+The check runs the catalog test from `apps/e2e/tests/catalog.spec.ts` against `http://localhost:18000`.
+The test checks that the store lists the eight seeded products.
+It then applies the Laptops filter and checks that only the laptop remains.
+The check fails if the storefront is unavailable or the catalog does not load.
 Set `PREVIEW_URL` if the storefront uses a different host or port.
+The pull request checks run the same test against the browser test storefront, as described in `apps/e2e/README.md`.
+
+7. Remove the preview.
+
+Remove the containers, network and images when you no longer need the demo.
+Removing `b2b-preview-db` permanently deletes the demo database.
+
+```sh
+docker rm -f b2b-preview-storefront b2b-preview-api b2b-preview-db
+docker network rm b2b-preview-net
+docker rmi b2b-preview-storefront b2b-preview-backend
+```
+
+The migration and admin user commands use `--rm`, so Docker removes those containers when they stop.
+These commands keep the `postgres:16-alpine` image and the Docker build cache, because other projects can use them.
+To remove the image too, run `docker rmi postgres:16-alpine` when no other container uses it.

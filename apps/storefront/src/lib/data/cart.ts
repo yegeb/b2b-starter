@@ -2,8 +2,10 @@
 
 import { sdk } from "@/lib/config"
 import medusaError from "@/lib/util/medusa-error"
+import { addLineItemsBulk } from "@/lib/util/server-cart"
 import { StoreApprovalResponse } from "@/types/approval"
 import { B2BCart } from "@/types/global"
+import { FetchError } from "@medusajs/js-sdk"
 import { HttpTypes, StoreCart } from "@medusajs/types"
 import { track } from "@vercel/analytics/server"
 import { revalidateTag } from "next/cache"
@@ -116,6 +118,29 @@ export async function updateCart(data: HttpTypes.StoreUpdateCart) {
     .catch(medusaError)
 }
 
+export type AddToCartResult = {
+  error?: { code: "cart_pending_approval"; message: string }
+}
+
+const addToCartRejection = (error: unknown): AddToCartResult => {
+  if (
+    error instanceof FetchError &&
+    error.status === 400 &&
+    error.message === "Cart is pending approval"
+  ) {
+    return { error: { code: "cart_pending_approval", message: error.message } }
+  }
+
+  return medusaError(error)
+}
+
+const revalidateCartItems = async () => {
+  const fullfillmentCacheTag = await getCacheTag("fulfillment")
+  revalidateTag(fullfillmentCacheTag, { expire: 0 })
+  const cartCacheTag = await getCacheTag("carts")
+  revalidateTag(cartCacheTag, { expire: 0 })
+}
+
 export async function addToCart({
   variantId,
   quantity,
@@ -124,7 +149,7 @@ export async function addToCart({
   variantId: string
   quantity: number
   countryCode: string
-}) {
+}): Promise<AddToCartResult> {
   if (!variantId) {
     throw new Error("Missing variant ID when adding to cart")
   }
@@ -138,8 +163,8 @@ export async function addToCart({
     ...(await getAuthHeaders()),
   }
 
-  await sdk.store.cart
-    .createLineItem(
+  try {
+    await sdk.store.cart.createLineItem(
       cart.id,
       {
         variant_id: variantId,
@@ -148,13 +173,12 @@ export async function addToCart({
       {},
       headers
     )
-    .then(async () => {
-      const fullfillmentCacheTag = await getCacheTag("fulfillment")
-      revalidateTag(fullfillmentCacheTag, { expire: 0 })
-      const cartCacheTag = await getCacheTag("carts")
-      revalidateTag(cartCacheTag, { expire: 0 })
-    })
-    .catch(medusaError)
+  } catch (error) {
+    return addToCartRejection(error)
+  }
+
+  await revalidateCartItems()
+  return {}
 }
 
 export async function addToCartBulk({
@@ -163,41 +187,26 @@ export async function addToCartBulk({
 }: {
   lineItems: HttpTypes.StoreAddCartLineItem[]
   countryCode: string
-}) {
+}): Promise<AddToCartResult> {
   const cart = await getOrSetCart(countryCode)
 
   if (!cart) {
     throw new Error("Error retrieving or creating cart")
   }
 
-  const headers = {
-    "Content-Type": "application/json",
-    ...(await getAuthHeaders()),
-  } as Record<string, any>
-
-  if (process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY) {
-    headers["x-publishable-api-key"] =
-      process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+  // The SDK rejects non-2xx responses, so a refused request reaches the caller.
+  try {
+    await addLineItemsBulk(
+      cart.id,
+      lineItems,
+      (await getAuthHeaders()) as Record<string, string>
+    )
+  } catch (error) {
+    return addToCartRejection(error)
   }
 
-  await fetch(
-    `${
-      process.env.MEDUSA_BACKEND_URL ||
-      process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
-    }/store/carts/${cart.id}/line-items/bulk`,
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ line_items: lineItems }),
-    }
-  )
-    .then(async () => {
-      const fullfillmentCacheTag = await getCacheTag("fulfillment")
-      revalidateTag(fullfillmentCacheTag, { expire: 0 })
-      const cartCacheTag = await getCacheTag("carts")
-      revalidateTag(cartCacheTag, { expire: 0 })
-    })
-    .catch(medusaError)
+  await revalidateCartItems()
+  return {}
 }
 
 export async function updateLineItem({
