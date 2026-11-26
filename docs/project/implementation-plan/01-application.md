@@ -92,7 +92,8 @@ On the same quote, deleting one digit from `1,500` displayed `150` and saved EUR
 Focusing and leaving the field without a change sent no update.
 An ordinary buyer who opened `/dk/account/approvals` saw the not-available message, and the storefront sent no approvals request.
 The company admin still saw the pending, approved and rejected lists.
-The Admin type check has one error in `manage-items-section.tsx` that also occurs on the base revision, tracked in [issue 109](https://github.com/yegeb/b2b-starter/issues/109).
+The Admin type check had one error in `manage-items-section.tsx` that also occurred on the base revision, tracked in [issue 109](https://github.com/yegeb/b2b-starter/issues/109).
+A4 fixes it; see the A4 evidence below.
 
 ### A3 browser regression tests
 
