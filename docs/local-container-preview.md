@@ -75,7 +75,7 @@ preview_build_network=host
 preview_build_backend=http://127.0.0.1:19000
 ```
 
-The `Linux container build networking check` job in the pull request checks runs steps 1 to 5 with the host network on a Linux engine.
+The `Linux container build networking check` job in the pull request checks runs steps 1 to 5 with the host network on a Linux engine, except the admin user creation in step 2.
 To run it on your own Linux engine, use `node scripts/check-linux-container-build.mjs`.
 It uses new names and free ports, and removes the containers, network, and images that it creates.
 
