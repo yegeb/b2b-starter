@@ -128,12 +128,16 @@ A non-admin employee changed and deleted the company.
 The employee list returned HTTP 500 for every caller.
 For the backend type check (#103, #109), `tsc --noEmit -p .` exited with status 2 and 5 errors.
 The errors were TS2353 `inApp` in three HTTP specs, TS2339 `default` in `integration-tests/utils/admin.ts`, and TS2741 in `src/admin/routes/quotes/components/quote-manage/manage-items-section.tsx`.
-After the fix, at commit `1fdee54`, root `pnpm test:integration:http` ran with Node 22.23.4, pnpm 9.15.0, a frozen lockfile, and a PostgreSQL 16 instance for this task only.
-6 suites passed, 60 tests passed, 0 failed.
+For the company update body (#111), commit `c478e06` added two `POST /store/companies/:id` tests: a body `id` cannot redirect the update, and the company as the storefront reads it, with approval settings, is accepted.
+At `c478e06`, root `pnpm test:integration:http` gave 1 suite failed, 5 passed, 2 tests failed, 59 passed, 61 total.
+Both new tests got HTTP 400, because Medusa makes object body schemas strict.
+After the fix, at `c478e06` plus the `StoreUpdateCompany` validator change that drops read-only fields, root `pnpm test:integration:http` ran with Node 22.23.4, pnpm 9.15.0, a frozen lockfile, and a PostgreSQL 16 instance for this task only.
+This is the code at the head of this change.
+6 suites passed, 61 tests passed, 0 failed.
 
 | Suite | Issues | Tests passed |
 | --- | --- | --- |
-| `http/companies/company-scope.spec.ts` | #102, #110 | 28 |
+| `http/companies/company-scope.spec.ts` | #102, #110, #111 | 29 |
 | `http/quotes/ownership.spec.ts` | #36, #90 | 11 |
 | `http/approvals/company-scope.spec.ts` | #36 | 6 |
 | `http/companies/companies.spec.ts` | #102 | 7 |
@@ -144,6 +148,7 @@ After the fix, at commit `1fdee54`, root `pnpm test:integration:http` ran with N
 `http/quotes/quotes.spec.ts` is the existing quote journey: create, merchant send, accept, reject.
 `pnpm --filter @b2b-starter/backend typecheck` (`tsc --noEmit -p .`) exited with status 0 and no errors (#103).
 `pnpm --filter @b2b-starter/backend exec tsc --noEmit -p src/admin/tsconfig.json` exited with status 0 and no errors (#109).
+`pnpm lint` reported 0 errors.
 The browser buyer journey from A3 was not part of this check.
 [Ownership middleware](../../../apps/backend/src/api/middlewares/ensure-ownership.ts) · [HTTP suites](../../../apps/backend/integration-tests/http)
 
