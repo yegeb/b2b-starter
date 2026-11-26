@@ -1,6 +1,6 @@
 import Approvals from "@/app/[countryCode]/(main)/account/@dashboard/approvals/page"
 import Orders from "@/app/[countryCode]/(main)/account/@dashboard/orders/page"
-import { listApprovals } from "@/lib/data/approvals"
+import { listApprovals, listCustomerApprovals } from "@/lib/data/approvals"
 import { retrieveCompany } from "@/lib/data/companies"
 import { retrieveCustomer } from "@/lib/data/customer"
 import { listOrders } from "@/lib/data/orders"
@@ -11,7 +11,10 @@ import { render, screen } from "@testing-library/react"
 import { ReactElement } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("@/lib/data/approvals", () => ({ listApprovals: vi.fn() }))
+vi.mock("@/lib/data/approvals", () => ({
+  listApprovals: vi.fn(),
+  listCustomerApprovals: vi.fn(),
+}))
 vi.mock("@/lib/data/companies", () => ({ retrieveCompany: vi.fn() }))
 vi.mock("@/lib/data/customer", () => ({ retrieveCustomer: vi.fn() }))
 vi.mock("@/lib/data/orders", () => ({ listOrders: vi.fn() }))
@@ -65,6 +68,7 @@ const makeCustomer = (isAdmin: boolean) =>
 const buyer = makeCustomer(false)
 const approver = makeCustomer(true)
 const pendingCart = { id: "cart_pending" }
+const ownPendingCart = { id: "cart_own_pending" }
 
 // Mirror the Store API: only company admins may list approvals.
 const mockApprovalsFor = (customer: B2BCustomer) => {
@@ -77,6 +81,11 @@ const mockApprovalsFor = (customer: B2BCustomer) => {
       ReturnType<typeof listApprovals>
     >
   })
+  // Any employee may list their own carts.
+  vi.mocked(listCustomerApprovals).mockResolvedValue({
+    carts_with_approvals: [ownPendingCart],
+    count: 1,
+  } as Awaited<ReturnType<typeof listCustomerApprovals>>)
 }
 
 const renderOrdersFor = async (customer: B2BCustomer) => {
@@ -131,22 +140,44 @@ describe("account layout", () => {
 })
 
 describe("orders page", () => {
-  it("renders an ordinary employee's orders without the pending approvals section", async () => {
+  it("lists only an ordinary employee's own pending approvals", async () => {
     await renderOrdersFor(buyer)
 
     expect(listApprovals).not.toHaveBeenCalled()
+    expect(listCustomerApprovals).toHaveBeenCalledWith({
+      status: ApprovalStatusType.PENDING,
+    })
     expect(screen.getByText("Order overview")).toBeTruthy()
-    expect(screen.queryByText("Pending Approvals")).toBeNull()
+    expect(screen.getByText("Pending Approvals")).toBeTruthy()
+    expect(screen.getByText(ownPendingCart.id)).toBeTruthy()
+    expect(screen.queryByText(pendingCart.id)).toBeNull()
   })
 
-  it("lists pending approvals for a company admin", async () => {
+  it("lists the company's pending approvals for a company admin", async () => {
     await renderOrdersFor(approver)
 
+    expect(listCustomerApprovals).not.toHaveBeenCalled()
     expect(listApprovals).toHaveBeenCalledWith({
       status: ApprovalStatusType.PENDING,
     })
     expect(screen.getByText("Pending Approvals")).toBeTruthy()
     expect(screen.getByText(pendingCart.id)).toBeTruthy()
+  })
+
+  it("skips the approval lists when the company requires no approval", async () => {
+    vi.mocked(retrieveCompany).mockResolvedValue({
+      id: "comp_a",
+      approval_settings: {
+        requires_admin_approval: false,
+        requires_sales_manager_approval: false,
+      },
+    } as Awaited<ReturnType<typeof retrieveCompany>>)
+
+    await renderOrdersFor(buyer)
+
+    expect(listApprovals).not.toHaveBeenCalled()
+    expect(listCustomerApprovals).not.toHaveBeenCalled()
+    expect(screen.queryByText("Pending Approvals")).toBeNull()
   })
 })
 

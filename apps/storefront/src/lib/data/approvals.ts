@@ -60,6 +60,39 @@ export const listApprovals = async ({
   return result
 }
 
+/**
+ * List the signed-in customer's own carts that have approval requests.
+ * Unlike `listApprovals`, any company employee may call it.
+ */
+export const listCustomerApprovals = async ({
+  status,
+  offset = 0,
+  limit = 20,
+}: Pick<ListApprovalsParams, "status" | "offset" | "limit"> = {}) => {
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const next = {
+    ...(await getCacheOptions("approvals")),
+  }
+
+  return sdk.client.fetch<StoreApprovalsResponse>(
+    `/store/customers/me/approvals`,
+    {
+      query: {
+        status,
+        offset,
+        limit,
+      },
+      method: "GET",
+      headers,
+      next,
+      credentials: "include",
+    }
+  )
+}
+
 export const retrieveApproval = async (approvalId: string) => {}
 
 export const updateApproval = async (
