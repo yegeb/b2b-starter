@@ -11,7 +11,7 @@ import {
   validateAndTransformQuery,
 } from "@medusajs/framework";
 import { MiddlewareRoute } from "@medusajs/medusa";
-import { ensureRole } from "../../middlewares/ensure-role";
+import { ensureCompanyApprover } from "../../middlewares/ensure-company-access";
 import { ApprovalType } from "../../../types/approval";
 import { approvalTransformQueryConfig } from "./query-config";
 import { StoreGetApprovals, StoreUpdateApproval } from "./validators";
@@ -23,7 +23,7 @@ import { StoreGetApprovals, StoreUpdateApproval } from "./validators";
 */
 const ensureApproverCanModerate = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse,
+  _res: MedusaResponse,
   next: MedusaNextFunction
 ) => {
   const { id } = req.params;
@@ -66,8 +66,10 @@ const ensureApproverCanModerate = async (
   const approvalType = approval.type as unknown as ApprovalType;
 
   if (approvalType !== ApprovalType.ADMIN) {
-    res.status(403).json({ message: "Forbidden" });
-    return;
+    throw new MedusaError(
+      MedusaError.Types.FORBIDDEN,
+      "Only admin approvals can be moderated in the store"
+    );
   }
 
   next();
@@ -79,7 +81,7 @@ export const storeApprovalsMiddlewares: MiddlewareRoute[] = [
     matcher: "/store/approvals*",
     middlewares: [
       authenticate("customer", ["session", "bearer"]),
-      ensureRole("company_admin"),
+      ensureCompanyApprover,
     ],
   },
   {

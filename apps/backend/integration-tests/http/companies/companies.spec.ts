@@ -18,12 +18,20 @@ import {
 jest.setTimeout(60 * 1000);
 
 medusaIntegrationTestRunner({
-  inApp: true,
   env: {
     JWT_SECRET: "supersecret",
   },
   testSuite: ({ api, getContainer }) => {
     let storeHeaders, cart, product, salesChannel, region, customerToken;
+    let customer;
+
+    // Store sign-up adds the company creator as the company's first admin.
+    const joinAsFirstAdmin = (companyId: string) =>
+      api.post(
+        `/store/companies/${companyId}/employees`,
+        { customer_id: customer.id, is_admin: true },
+        storeHeaders
+      );
 
     beforeEach(async () => {
       const container = getContainer();
@@ -32,6 +40,7 @@ medusaIntegrationTestRunner({
       storeHeaders = generateStoreHeaders({ publishableKey });
       const res = await createStoreUser({ api, storeHeaders });
       customerToken = res.token;
+      customer = res.customer;
       storeHeaders.headers["Authorization"] = `Bearer ${customerToken}`;
       region = await regionSeeder({ api, adminHeaders, data: {} });
 
@@ -123,6 +132,8 @@ medusaIntegrationTestRunner({
           storeHeaders
         );
 
+        await joinAsFirstAdmin(response1.data.companies[0].id);
+
         const response2 = await api.get(
           `/store/companies/${response1.data.companies[0].id}`,
           storeHeaders
@@ -177,6 +188,7 @@ medusaIntegrationTestRunner({
         );
 
         company1 = response.data.companies[0];
+        await joinAsFirstAdmin(company1.id);
       });
 
       it("successfully updates a company", async () => {
@@ -251,6 +263,7 @@ medusaIntegrationTestRunner({
         );
 
         company1 = response.data.companies[0];
+        await joinAsFirstAdmin(company1.id);
       });
 
       it("successfully deletes a company", async () => {
@@ -263,11 +276,15 @@ medusaIntegrationTestRunner({
       });
 
       it("should throw an error when company does not exist", async () => {
-        const response = await api
+        const { response } = await api
           .delete(`/store/companies/does-not-exist`, storeHeaders)
           .catch((e) => e);
 
-        expect(response.status).toEqual(204);
+        expect(response.status).toEqual(404);
+        expect(response.data).toEqual({
+          type: "not_found",
+          message: "Company id not found: does-not-exist",
+        });
       });
     });
   },

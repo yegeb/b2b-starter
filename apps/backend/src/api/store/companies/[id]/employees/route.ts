@@ -13,20 +13,15 @@ export const GET = async (
   const { id } = req.params;
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
 
-  const {
-    data: [{ employees }],
-    metadata,
-  } = await query.graph(
-    {
-      entity: "company",
-      fields: [...req.queryConfig.fields, "employees.*"],
-      filters: {
-        id,
-        ...req.filterableFields,
-      },
+  const { data: employees, metadata } = await query.graph({
+    entity: "employee",
+    fields: req.queryConfig.fields,
+    filters: {
+      ...req.filterableFields,
+      company_id: id,
     },
-    { throwIfKeyNotFound: true }
-  );
+    pagination: req.queryConfig.pagination,
+  });
 
   res.json({
     employees,
