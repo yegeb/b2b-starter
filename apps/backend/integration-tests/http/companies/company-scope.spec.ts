@@ -166,18 +166,48 @@ medusaIntegrationTestRunner({
         expect((await readCompanyA()).name).toEqual("Company A");
       });
 
-      it("rejects a body id that targets another company", async () => {
-        const response = await denied(
-          api.post(
-            `/store/companies/${companyB.id}`,
-            { id: companyA.id, name: "Renamed through body id" },
-            adminB.headers
-          )
+      it("does not let a body id redirect the update to another company", async () => {
+        const response = await api.post(
+          `/store/companies/${companyB.id}`,
+          { id: companyA.id, name: "Renamed through body id" },
+          adminB.headers
         );
 
-        expect(response.status).toEqual(400);
-        expect(response.data.type).toEqual("invalid_data");
+        expect(response.status).toEqual(200);
+        expect(response.data.company).toEqual(
+          expect.objectContaining({
+            id: companyB.id,
+            name: "Renamed through body id",
+          })
+        );
         expect((await readCompanyA()).name).toEqual("Company A");
+      });
+
+      it("accepts the company as the storefront reads it, with approval settings", async () => {
+        const {
+          data: { company },
+        } = await api.get(
+          `/store/companies/${companyA.id}?fields=+spending_limit_reset_frequency,*employees.customer,*approval_settings`,
+          adminA.headers
+        );
+        expect(company.approval_settings).toBeDefined();
+
+        const editable = { ...company };
+        for (const key of ["id", "created_at", "updated_at", "employees"]) {
+          delete editable[key];
+        }
+
+        const response = await api.post(
+          `/store/companies/${companyA.id}`,
+          { ...editable, name: "Company A Edited" },
+          adminA.headers
+        );
+
+        expect(response.status).toEqual(200);
+        expect(response.data.company).toEqual(
+          expect.objectContaining({ id: companyA.id, name: "Company A Edited" })
+        );
+        expect((await readCompanyA()).name).toEqual("Company A Edited");
       });
     });
 
