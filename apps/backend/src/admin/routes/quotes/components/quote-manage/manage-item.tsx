@@ -30,6 +30,20 @@ import {
 } from "../../../../hooks/api";
 import { currencySymbolMap } from "../../../../utils";
 
+/**
+ * Parse the unformatted value of the price input.
+ * Return `undefined` for an empty, negative, or non-numeric value.
+ */
+const parseUnitPrice = (value: unknown): number | undefined => {
+  if (typeof value !== "string" || value.trim() === "") {
+    return undefined;
+  }
+
+  const unitPrice = Number(value);
+
+  return Number.isFinite(unitPrice) && unitPrice >= 0 ? unitPrice : undefined;
+};
+
 type ManageItemProps = {
   originalItem: AdminOrder["items"][0];
   item: AdminOrderPreview["items"][0];
@@ -281,22 +295,36 @@ function ManageItem({
             <div className="flex-grow">
               <Form.Field
                 name={`inbound_items.${item.id}.unit_price`}
-                render={({ field: { ref, ...field } }) => {
+                render={({ field: { ref, onChange, value, ...field } }) => {
                   return (
                     <Form.Item>
                       <Form.Control>
                         <CurrencyInput
                           {...field}
+                          value={value}
                           symbol={currencyCode}
                           code={currencySymbolMap[currencyCode]}
                           defaultValue={item.unit_price}
                           type="numeric"
                           min={0}
+                          onValueChange={(_value, _name, values) => {
+                            // Store the unformatted value, not the grouped display text.
+                            onChange(values?.value ?? "");
+                          }}
                           onBlur={() => {
-                            field.onChange(field.value);
+                            field.onBlur();
+
+                            const unitPrice = parseUnitPrice(value);
+
+                            if (
+                              unitPrice === undefined ||
+                              unitPrice === item.unit_price
+                            ) {
+                              return;
+                            }
 
                             onUpdate({
-                              unit_price: parseFloat(field.value),
+                              unit_price: unitPrice,
                               quantity: item.quantity,
                             });
                           }}
