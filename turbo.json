@@ -23,6 +23,7 @@
       "outputs": ["coverage/**"]
     },
     "test:integration:http": {
+      "passThroughEnv": ["DB_HOST", "DB_PORT", "DB_USERNAME", "DB_PASSWORD", "JWT_SECRET", "COOKIE_SECRET"],
       "cache": false
     },
     "test:integration:modules": {
