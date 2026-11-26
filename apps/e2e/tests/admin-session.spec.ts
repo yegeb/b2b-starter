@@ -1,4 +1,5 @@
-import { expect, Page, test } from "@playwright/test"
+import type { Page } from "@playwright/test"
+import { expect, test } from "./test"
 import { backendUrl, fixtures, openPage, submitAdminLogin } from "./fixtures"
 
 const { admin } = fixtures

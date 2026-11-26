@@ -31,6 +31,10 @@ Each run uses new fixture names, so you can run it again on the same database.
 
 The HTML report is written to `apps/e2e/playwright-report`.
 
+The seeded products use images from a public S3 bucket.
+The tests import `test` from `tests/test.ts`, which serves a small local image for those URLs.
+Page navigations wait for every image, so the tests do not depend on that bucket being fast or reachable.
+
 The catalog test needs only a seeded storefront.
 `scripts/verify-local-preview.mjs` runs it against the [local container preview](../../docs/local-container-preview.md).
 
@@ -38,3 +42,4 @@ The catalog test needs only a seeded storefront.
 
 The `Backend HTTP and browser tests` job in the pull request checks runs these tests against a PostgreSQL service container.
 The same job also checks that `scripts/verify-local-preview.mjs` fails when no preview is running.
+The `Linux container build networking check` job runs `scripts/verify-local-preview.mjs` against the storefront and backend containers that it builds from the repository Dockerfile.

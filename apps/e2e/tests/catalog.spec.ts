@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, test } from "./test"
 import { openPage, storefrontUrl } from "./storefront"
 
 // This test needs only a storefront with the initial seed, so
