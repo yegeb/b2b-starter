@@ -132,7 +132,7 @@ For the company update body (#111), commit `c478e06` added two `POST /store/comp
 At `c478e06`, root `pnpm test:integration:http` gave 1 suite failed, 5 passed, 2 tests failed, 59 passed, 61 total.
 Both new tests got HTTP 400, because Medusa makes object body schemas strict.
 After the fix, at `c478e06` plus the `StoreUpdateCompany` validator change that drops read-only fields, root `pnpm test:integration:http` ran with Node 22.23.4, pnpm 9.15.0, a frozen lockfile, and a PostgreSQL 16 instance for this task only.
-This is the code at the head of this change.
+These results apply to the backend code at the head of this change, which the #111 storefront commit `f24559a` did not change.
 6 suites passed, 61 tests passed, 0 failed.
 
 | Suite | Issues | Tests passed |
@@ -149,6 +149,14 @@ This is the code at the head of this change.
 `pnpm --filter @b2b-starter/backend typecheck` (`tsc --noEmit -p .`) exited with status 0 and no errors (#103).
 `pnpm --filter @b2b-starter/backend exec tsc --noEmit -p src/admin/tsconfig.json` exited with status 0 and no errors (#109).
 `pnpm lint` reported 0 errors.
+For the company update toast and body (#111), `pnpm --filter @b2b-starter/storefront test` ran at `f24559a` with Node 22.23.4, pnpm 9.15.0, and a frozen lockfile.
+The Vitest file `src/modules/account/__tests__/company-card.test.tsx` gave 1 file, 3 tests passed, 0 failed.
+Before the fix, with only `apps/storefront/src/modules/account/components/company-card/index.tsx` restored from `main`, the same file gave 2 failed, 1 passed, 3 total.
+"shows only the error toast when the update fails" failed because the success toast was called once.
+"sends only the editable company fields" failed because the body included the read-only `approval_settings` field.
+At `f24559a`, after the rebase onto `main`, root `pnpm test:integration:http` on a PostgreSQL 16 instance for this task only gave 7 suites passed, 69 tests passed, 0 failed.
+That total is the 61 A4 tests plus the 8 tests of `http/demo-fixtures/demo-fixtures.spec.ts`, which came from `main` (A2).
+At `f24559a`, `pnpm --filter @b2b-starter/backend typecheck` exited with status 0, and `tsc --noEmit -p src/admin/tsconfig.json` exited with status 0.
 The browser buyer journey from A3 was not part of this check.
 [Ownership middleware](../../../apps/backend/src/api/middlewares/ensure-ownership.ts) · [HTTP suites](../../../apps/backend/integration-tests/http)
 
