@@ -71,6 +71,7 @@ Category parameter generation also requests regions and categories.
 The failed run stopped at the collection route, so it did not isolate a category route failure.
 Product parameter generation requests regions and products, but it catches errors and returns an empty parameter list.
 That catch alone does not make the complete storefront build independent of the API.
+The fix in [Fix and regression check](#fix-and-regression-check) gives the collection and category routes the same fallback.
 
 The seeded build classified these routes as follows:
 
@@ -121,6 +122,60 @@ The seeded build produced `apps/storefront/.next/BUILD_ID` and `apps/backend/.me
 The broader output directories are `apps/storefront/.next` and `apps/backend/.medusa/server`.
 These paths are build outputs, not container image digests or deployed artifacts.
 
-## Follow-up
+## Fix and regression check
 
-[Issue 91](https://github.com/yegeb/b2b-starter/issues/91) tracks repeatable regression checks for builds with the seeded API available and unavailable.
+[Issue 106](https://github.com/yegeb/b2b-starter/issues/106) records the API-unavailable build failure as a bug.
+The fix adds `staticParamsOrEmpty` in `apps/storefront/src/lib/util/static-params.ts`.
+The collection, category and product routes call it from `generateStaticParams`.
+If the API request fails, the helper logs the error and returns no parameters.
+These routes set `dynamicParams = true`, so their pages then render on demand.
+
+[Issue 91](https://github.com/yegeb/b2b-starter/issues/91) asks for a repeatable regression check.
+`scripts/check-storefront-build.mjs` implements it:
+
+1. It builds the storefront with the API URL at a free loopback port where nothing listens.
+2. It migrates and seeds the database at `BUILD_CHECK_DATABASE_URL`, builds the backend and creates a generated admin user.
+3. It starts the API, waits for its health endpoint and reads the seeded publishable key through the Admin API.
+4. It builds the storefront again against that API.
+5. It stops the API and writes each log and `summary.json` to `BUILD_CHECK_OUTPUT_DIR` or a temporary directory.
+
+The check fails if either storefront build exits with a nonzero status.
+It reports the failing stage and route from the Next.js output.
+It also fails if the seeded build prerenders no product page.
+It generates the backend secrets and the admin credentials for each run.
+`BUILD_CHECK_DATABASE_URL` must point to a disposable database for the check only.
+The check does not drop that database.
+
+To run the check locally:
+
+```bash
+pnpm install --frozen-lockfile
+BUILD_CHECK_DATABASE_URL=postgres://<user>:<password>@localhost:<port>/<disposable-db> \
+  node scripts/check-storefront-build.mjs
+```
+
+The `Storefront build regression check` job in `.github/workflows/pr-checks.yml` runs the same script on pull requests.
+It uses a PostgreSQL service container that exists only for that job, and it needs no repository secrets.
+It uploads the logs as the `storefront-build-check` artifact.
+
+### Results before and after the fix
+
+On 26 November 2026 the check ran locally with Node 22.23.5 and pnpm 9.15.0.
+Each run used a new database in a PostgreSQL 16 container that was created for this task only.
+
+| Run | API unavailable | Seeded API available | Check result |
+| --- | --- | --- | --- |
+| Before the fix | Exit 1. Failed at stage "collect page data" for `/[countryCode]/collections/[handle]`. | Exit 0. 106 of 106 pages, including 56 product pages. | Fail, exit 1 |
+| After the fix | Exit 0. 15 of 15 pages, with no product pages prerendered. | Exit 0. 106 of 106 pages, including 56 product pages. | Pass, exit 0 |
+
+After the fix, the API-unavailable build logged these lines and continued:
+
+```text
+Failed to generate static paths for category pages: Error setting up the request: fetch failed. These pages render on demand.
+Failed to generate static paths for collection pages: fetch failed. These pages render on demand.
+Failed to generate static paths for product pages: Error setting up the request: fetch failed. These pages render on demand.
+```
+
+A build without the API produces no prerendered catalog pages.
+Its catalog pages need the API at request time.
+Build the storefront against a seeded and reachable API to prerender the product pages.
