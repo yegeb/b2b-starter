@@ -111,5 +111,20 @@ class ScannerIntegrationTests(unittest.TestCase):
             self.assertIn("Gitleaks is unavailable", result.stderr)
 
 
+class CompactHookTests(unittest.TestCase):
+    def test_compact_hook_reports_branch_and_changed_files(self):
+        config = json.loads((ROOT / ".codex/hooks.json").read_text())
+        hook = next(item for item in config["hooks"]["SessionStart"] if item["matcher"] == "^compact$")
+        command = hook["hooks"][0]["command"]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subprocess.run(["git", "init", "-q", "-b", "test-branch", str(root)], check=True)
+            (root / "pending.txt").write_text("example\n")
+            result = subprocess.run(command, cwd=root, shell=True, capture_output=True, text=True, check=True)
+            self.assertIn("test-branch", result.stdout)
+            self.assertIn("?? pending.txt", result.stdout)
+            self.assertNotIn("example", result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()
