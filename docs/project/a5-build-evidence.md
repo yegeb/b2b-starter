@@ -135,6 +135,8 @@ These routes set `dynamicParams = true`, so their pages then render on demand.
 
 1. It copies the tracked and untracked, not ignored, files of the checkout to a temporary directory and runs `pnpm install --frozen-lockfile` there.
 2. It builds the storefront in that copy with the API URL at a free loopback port where nothing listens.
+   Both storefront builds set `NEXT_PUBLIC_BASE_URL`, as deployments do, so Next.js prerenders the routes that need no request data.
+   [Issue 112](https://github.com/yegeb/b2b-starter/issues/112) records the sitemap build failure that this setting finds.
 3. It creates a database with a unique `build_check_<random>` name on the PostgreSQL server at `BUILD_CHECK_DATABASE_URL`.
 4. It migrates and seeds that database, builds the backend and creates a generated admin user.
 5. It starts the API, waits for its health endpoint and reads the seeded publishable key through the Admin API.

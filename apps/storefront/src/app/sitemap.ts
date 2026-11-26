@@ -3,6 +3,11 @@ import { listRegions } from "@/lib/data/regions"
 import { getSiteOrigin, listCountryCodes } from "@/lib/util/site"
 import type { MetadataRoute } from "next"
 
+// Render the sitemap on each request. With NEXT_PUBLIC_BASE_URL set, Next.js
+// would otherwise prerender it during the build, and the build would fail
+// while the API is unavailable. It also keeps new catalog entries in it.
+export const dynamic = "force-dynamic"
+
 const STATIC_PATHS = [
   "",
   "/store",

@@ -13,7 +13,7 @@
 //      without the API and renders the pages on demand, so a successful build
 //      alone does not prove that the build network works.
 //   5. Start the storefront container and confirm that it serves a seeded
-//      product page.
+//      product page and a sitemap that lists it.
 //
 // Requirements:
 //   - Linux, with a Docker engine that runs on this host. Host loopback must be
@@ -510,6 +510,23 @@ try {
   if (!page.html.includes("Ultra-Slim AI Laptop")) {
     throw new Error(`${pageUrl} does not show the seeded Ultra-Slim AI Laptop.`)
   }
+
+  // The sitemap renders on each request and lists the seeded products.
+  const sitemapUrl = `http://127.0.0.1:${storefrontPort}/sitemap.xml`
+  const sitemap = await fetch(sitemapUrl)
+  const sitemapXml = await sitemap.text()
+  const laptopUrl = `${storefrontUrl}/${region}/products/${laptop.handle}`
+  record("storefront-sitemap", {
+    url: sitemapUrl,
+    status: sitemap.status,
+    listsSeededProduct: sitemapXml.includes(`<loc>${laptopUrl}</loc>`),
+  })
+  if (sitemap.status !== 200) {
+    throw new Error(`${sitemapUrl} returned HTTP ${sitemap.status}, not 200.`)
+  }
+  if (!sitemapXml.includes(`<loc>${laptopUrl}</loc>`)) {
+    throw new Error(`${sitemapUrl} does not list ${laptopUrl}.`)
+  }
 } catch (error) {
   summary.errors.push(error instanceof Error ? error.message : String(error))
 } finally {
@@ -530,5 +547,5 @@ if (summary.errors.length) {
 }
 console.log(
   "PASS: the storefront image built with --network host against the loopback API " +
-    "and served a seeded product page."
+    "and served a seeded product page and sitemap."
 )
