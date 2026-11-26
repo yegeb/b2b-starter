@@ -21,21 +21,35 @@ const CompanyCard = ({
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  const { updated_at, created_at, employees, ...companyUpdateData } = company
-
-  const [companyData, setCompanyData] = useState(
-    companyUpdateData as StoreUpdateCompany
-  )
+  // Send only the fields that the Store API accepts in a company update.
+  const [companyData, setCompanyData] = useState<StoreUpdateCompany>({
+    id: company.id,
+    name: company.name,
+    email: company.email,
+    phone: company.phone,
+    address: company.address,
+    city: company.city,
+    state: company.state,
+    zip: company.zip,
+    country: company.country,
+    logo_url: company.logo_url,
+    currency_code: company.currency_code ?? undefined,
+    spending_limit_reset_frequency: company.spending_limit_reset_frequency,
+  })
 
   const handleSave = async () => {
     setIsSaving(true)
-    await updateCompany(companyData).catch(() => {
-      toast.error("Error updating company")
-    })
-    setIsSaving(false)
-    setIsEditing(false)
 
-    toast.success("Company updated")
+    try {
+      await updateCompany(companyData)
+      setIsEditing(false)
+      toast.success("Company updated")
+    } catch {
+      // Keep the form open so the user can correct the values and retry.
+      toast.error("Error updating company")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const currenciesInRegions = Array.from(
