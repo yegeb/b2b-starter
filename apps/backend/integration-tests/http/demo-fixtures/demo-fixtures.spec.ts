@@ -1,10 +1,15 @@
 import { randomBytes } from "node:crypto";
-import { medusaIntegrationTestRunner } from "@medusajs/test-utils";
+import {
+  medusaIntegrationTestRunner,
+  waitSubscribersExecution,
+} from "@medusajs/test-utils";
 import {
   ContainerRegistrationKeys,
+  Modules,
   PUBLISHABLE_KEY_HEADER,
 } from "@medusajs/framework/utils";
 import initialDataSeed from "../../../src/migration-scripts/initial-data-seed";
+import { updateEmployeesWorkflow } from "../../../src/workflows/employee/workflows";
 import {
   COMPANY_ADMIN_ROLE,
   createDemoFixtures,
@@ -31,6 +36,7 @@ medusaIntegrationTestRunner({
   testSuite: ({ api, getContainer }) => {
     let fixtures: DemoFixtures;
     let publishableKey: string;
+    let productOptionErrors: unknown[][];
 
     const bearer = (token: string) => ({
       headers: { authorization: `Bearer ${token}` },
@@ -63,7 +69,22 @@ medusaIntegrationTestRunner({
     // restores before each test.
     beforeAll(async () => {
       const container = getContainer();
-      await initialDataSeed({ container });
+      const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
+      const loggedError = jest.spyOn(logger, "error");
+      const productOptionsHandled = waitSubscribersExecution(
+        "product-option.created",
+        container.resolve(Modules.EVENT_BUS)
+      );
+      try {
+        await initialDataSeed({ container });
+        await productOptionsHandled;
+      } finally {
+        productOptionErrors = loggedError.mock.calls.filter((args) =>
+          args.some((arg) => String(arg).includes("product-option.created"))
+        );
+        loggedError.mockRestore();
+      }
+
       fixtures = await createDemoFixtures(container, { passwords });
 
       const query = container.resolve(ContainerRegistrationKeys.QUERY);
@@ -75,6 +96,10 @@ medusaIntegrationTestRunner({
         filters: { id: fixtures.storefront.publishable_api_key_id },
       });
       publishableKey = apiKey.token;
+    });
+
+    it("seeds the catalog without product-option.created processing errors", () => {
+      expect(productOptionErrors).toEqual([]);
     });
 
     it("uses the provided passwords and reports no generated ones", () => {
@@ -278,14 +303,12 @@ medusaIntegrationTestRunner({
     });
 
     it("reuses existing records on a second run without changing passwords", async () => {
+      const onPasswordGenerated = jest.fn();
       const rerun = await createDemoFixtures(getContainer(), {
-        passwords: {
-          merchant: randomSecret(),
-          buyer_a: randomSecret(),
-          approver_a: randomSecret(),
-          buyer_b: randomSecret(),
-        },
+        onPasswordGenerated,
       });
+
+      expect(onPasswordGenerated).not.toHaveBeenCalled();
 
       expect(rerun.storefront).toEqual(fixtures.storefront);
       expect(rerun.merchant.user_id).toEqual(fixtures.merchant.user_id);
@@ -299,15 +322,46 @@ medusaIntegrationTestRunner({
             customer_id: fixtures.employees[key].customer_id,
             employee_id: fixtures.employees[key].employee_id,
             created: false,
+            password_generated: false,
           })
         );
-        expect(rerun.employees[key].password).toBeUndefined();
       }
 
       // The original password still works.
       await expect(customerToken("buyer_a")).resolves.toEqual(
         expect.any(String)
       );
+    });
+
+    it("stops before creating any account when an existing employee has another role", async () => {
+      const container = getContainer();
+      const userModule = container.resolve(Modules.USER);
+      const authModule = container.resolve(Modules.AUTH);
+
+      await userModule.deleteUsers([fixtures.merchant.user_id]);
+      const [merchantIdentity] = await authModule.listProviderIdentities({
+        provider: "emailpass",
+        entity_id: DEMO_EMAILS.merchant,
+      });
+      await authModule.deleteAuthIdentities([
+        merchantIdentity.auth_identity_id!,
+      ]);
+      await updateEmployeesWorkflow(container).run({
+        input: { id: fixtures.employees.approver_a.employee_id, is_admin: false },
+      });
+
+      const onPasswordGenerated = jest.fn();
+      await expect(
+        createDemoFixtures(container, { onPasswordGenerated })
+      ).rejects.toThrow(
+        `${DEMO_EMAILS.approver_a} is already employee ` +
+          fixtures.employees.approver_a.employee_id
+      );
+
+      expect(onPasswordGenerated).not.toHaveBeenCalled();
+      expect(
+        await userModule.listUsers({ email: DEMO_EMAILS.merchant })
+      ).toEqual([]);
     });
   },
 });

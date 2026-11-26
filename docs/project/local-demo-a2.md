@@ -36,11 +36,13 @@ To create the fixtures, do these steps:
 5. From `apps/backend`, run `pnpm medusa exec ./src/scripts/demo-fixtures.ts`.
 6. Record the IDs from the `Demo fixtures` summary.
 7. If the script printed generated passwords, store them in a private location.
-   The script shows each generated password one time only.
+   The script prints each generated password to standard output one time only, immediately after it creates the sign-in identity for that account.
+   A password stays available in the output if a later step fails.
+   The script does not write passwords to the application logger or to the summary.
 
 The script reuses the records that exist for these emails.
 A second run does not change passwords.
-It stops with an error if an existing employee has a different company or admin flag.
+Before it creates an account, the script stops with an error if an existing employee has a different company or admin flag.
 
 The summary includes the publishable key ID but not the key value.
 To get the key value for `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY`, open **Settings > Publishable API Keys** in the admin dashboard.
@@ -57,7 +59,9 @@ The test makes sure of these results:
 - The merchant signs in to the admin API.
 - The admin API shows the company members and the approval settings.
 - Buyer A creates a Denmark cart with one `WEBCAM-BLACK` at EUR 59 and starts a `pp_system_default` payment session.
-- A second run reuses the records and keeps the passwords.
+- A second run reuses the records, generates no passwords, and keeps the existing passwords.
+- A conflicting employee stops the script before it creates an account or generates a password.
+- The initial data seed logs no `product-option.created` processing errors ([issue 108](https://github.com/yegeb/b2b-starter/issues/108)).
 
 To run the test, follow [Running the HTTP suites](../../apps/backend/integration-tests/http/README.md#running-the-http-suites).
 

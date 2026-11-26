@@ -40,8 +40,8 @@ import { createEmployeesWorkflow } from "../workflows/employee/workflows";
  *
  * Passwords come from the environment variables in `PASSWORD_ENV`. The script
  * generates a password for each new account whose variable is not set and
- * prints it once. A second run reuses existing records and does not change
- * passwords.
+ * prints it once, as soon as the account's sign-in identity exists. A second
+ * run reuses existing records and does not change passwords.
  */
 
 export const DEMO_COUNTRY_CODE = "dk";
@@ -135,12 +135,16 @@ const EMPLOYEES: Record<
 export type DemoFixturesInput = {
   /** Passwords for accounts the script creates. Missing ones are generated. */
   passwords?: Partial<Record<DemoAccountKey, string>>;
+  /** Receives each generated password once its sign-in identity exists. */
+  onPasswordGenerated?: (
+    key: DemoAccountKey,
+    email: string,
+    password: string
+  ) => void;
 };
 
 export type DemoAccount = {
   email: string;
-  /** Set only when this run created the account. */
-  password?: string;
   password_generated: boolean;
   created: boolean;
 };
@@ -192,22 +196,14 @@ type Query = {
 
 const generatePassword = () => randomBytes(18).toString("base64url");
 
-const resolvePassword = (
-  key: DemoAccountKey,
-  passwords: DemoFixturesInput["passwords"]
-) => {
-  const provided = passwords?.[key];
-  if (provided) {
-    return { password: provided, password_generated: false };
-  }
-  return { password: generatePassword(), password_generated: true };
-};
-
 const registerEmailpassIdentity = async (
   container: MedusaContainer,
-  email: string,
-  password: string
+  key: DemoAccountKey,
+  input: DemoFixturesInput
 ) => {
+  const email = DEMO_EMAILS[key];
+  const provided = input.passwords?.[key];
+  const password = provided || generatePassword();
   const authModule = container.resolve<IAuthModuleService>(Modules.AUTH);
   const { success, authIdentity, error } = await authModule.register(
     "emailpass",
@@ -222,7 +218,12 @@ const registerEmailpassIdentity = async (
     );
   }
 
-  return authIdentity;
+  const password_generated = !provided;
+  if (password_generated) {
+    input.onPasswordGenerated?.(key, email, password);
+  }
+
+  return { authIdentity, password_generated };
 };
 
 /** Finds the storefront records that the initial data seed creates. */
@@ -332,7 +333,7 @@ const resolveStorefront = async (
 
 const ensureMerchant = async (
   container: MedusaContainer,
-  passwords: DemoFixturesInput["passwords"]
+  input: DemoFixturesInput
 ): Promise<DemoFixtures["merchant"]> => {
   const email = DEMO_EMAILS.merchant;
   const userModule = container.resolve<IUserModuleService>(Modules.USER);
@@ -348,14 +349,10 @@ const ensureMerchant = async (
     };
   }
 
-  const { password, password_generated } = resolvePassword(
-    "merchant",
-    passwords
-  );
-  const authIdentity = await registerEmailpassIdentity(
+  const { authIdentity, password_generated } = await registerEmailpassIdentity(
     container,
-    email,
-    password
+    "merchant",
+    input
   );
   const { result: user } = await createUserAccountWorkflow(container).run({
     input: {
@@ -369,7 +366,6 @@ const ensureMerchant = async (
     email,
     user_id: user.id,
     created: true,
-    password,
     password_generated,
   };
 };
@@ -463,7 +459,7 @@ const ensureEmployee = async (
   query: Query,
   key: DemoCustomerKey,
   companyId: string,
-  passwords: DemoFixturesInput["passwords"]
+  input: DemoFixturesInput
 ): Promise<DemoFixtures["employees"][DemoCustomerKey]> => {
   const definition = EMPLOYEES[key];
   const email = DEMO_EMAILS[key];
@@ -490,12 +486,8 @@ const ensureEmployee = async (
   });
 
   if (!customer) {
-    const { password, password_generated } = resolvePassword(key, passwords);
-    const authIdentity = await registerEmailpassIdentity(
-      container,
-      email,
-      password
-    );
+    const { authIdentity, password_generated } =
+      await registerEmailpassIdentity(container, key, input);
     const { result: created } = await createCustomerAccountWorkflow(
       container
     ).run({
@@ -509,7 +501,7 @@ const ensureEmployee = async (
       },
     });
 
-    account = { email, created: true, password, password_generated };
+    account = { email, created: true, password_generated };
     customer = { id: created.id, employee: null };
   }
 
@@ -545,17 +537,6 @@ const ensureEmployee = async (
     }
   }
 
-  if (
-    employee.company?.id !== companyId ||
-    employee.is_admin !== definition.is_admin
-  ) {
-    throw new MedusaError(
-      MedusaError.Types.CONFLICT,
-      `${email} is already employee ${employee.id} with a different company ` +
-        "or admin flag. Use an empty database or fix the record manually."
-    );
-  }
-
   return {
     ...account,
     label: definition.label,
@@ -566,6 +547,44 @@ const ensureEmployee = async (
   };
 };
 
+/**
+ * Stops before any account is created when an existing demo employee belongs
+ * to another company or has another admin flag.
+ */
+const assertNoEmployeeConflicts = async (query: Query) => {
+  const keys = Object.keys(EMPLOYEES) as DemoCustomerKey[];
+  const { data: customers } = await query.graph({
+    entity: "customer",
+    fields: [
+      "email",
+      "employee.id",
+      "employee.is_admin",
+      "employee.company.email",
+    ],
+    filters: { email: keys.map((key) => DEMO_EMAILS[key]), has_account: true },
+  });
+
+  for (const key of keys) {
+    const definition = EMPLOYEES[key];
+    const employee = customers.find(
+      (customer) => customer.email === DEMO_EMAILS[key]
+    )?.employee;
+
+    if (
+      employee &&
+      (employee.company?.email !== COMPANIES[definition.company].email ||
+        employee.is_admin !== definition.is_admin)
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.CONFLICT,
+        `${DEMO_EMAILS[key]} is already employee ${employee.id} with a ` +
+          "different company or admin flag. Use an empty database or fix " +
+          "the record manually."
+      );
+    }
+  }
+};
+
 export const createDemoFixtures = async (
   container: MedusaContainer,
   input: DemoFixturesInput = {}
@@ -573,7 +592,8 @@ export const createDemoFixtures = async (
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY);
 
   const storefront = await resolveStorefront(query);
-  const merchant = await ensureMerchant(container, input.passwords);
+  await assertNoEmployeeConflicts(query);
+  const merchant = await ensureMerchant(container, input);
 
   const companies = {
     company_a: await ensureCompany(container, query, "company_a"),
@@ -587,7 +607,7 @@ export const createDemoFixtures = async (
       query,
       key,
       companies[EMPLOYEES[key].company].id,
-      input.passwords
+      input
     );
   }
 
@@ -601,47 +621,17 @@ const passwordsFromEnv = () =>
       .map((key) => [key, process.env[PASSWORD_ENV[key]]])
   ) as DemoFixturesInput["passwords"];
 
-const withoutPassword = <T extends DemoAccount>({ password, ...rest }: T) =>
-  rest;
-
 export default async function demoFixtures({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
   const fixtures = await createDemoFixtures(container, {
     passwords: passwordsFromEnv(),
+    // Print generated passwords to stdout only, not to the application logger.
+    onPasswordGenerated: (key, email, password) =>
+      process.stdout.write(
+        "Generated demo password. Store it privately; it is not shown again:\n" +
+          `  ${PASSWORD_ENV[key]} (${email}): ${password}\n`
+      ),
   });
 
-  const accounts: [DemoAccountKey, DemoAccount][] = [
-    ["merchant", fixtures.merchant],
-    ...(Object.entries(fixtures.employees) as [DemoCustomerKey, DemoAccount][]),
-  ];
-
-  const summary = {
-    ...fixtures,
-    merchant: withoutPassword(fixtures.merchant),
-    employees: Object.fromEntries(
-      Object.entries(fixtures.employees).map(([key, employee]) => [
-        key,
-        withoutPassword(employee),
-      ])
-    ),
-  };
-
-  logger.info(`Demo fixtures:\n${JSON.stringify(summary, null, 2)}`);
-
-  const generated = accounts.filter(
-    ([, account]) => account.created && account.password_generated
-  );
-  if (generated.length) {
-    // Print generated passwords to stdout only, not to the application logger.
-    process.stdout.write(
-      "Generated demo passwords. Store them privately; they are not shown again:\n" +
-        generated
-          .map(
-            ([key, account]) =>
-              `  ${PASSWORD_ENV[key]} (${account.email}): ${account.password}`
-          )
-          .join("\n") +
-        "\n"
-    );
-  }
+  logger.info(`Demo fixtures:\n${JSON.stringify(fixtures, null, 2)}`);
 }
