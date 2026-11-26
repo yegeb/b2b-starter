@@ -12,6 +12,7 @@
     "test:integration:http": "turbo run test:integration:http",
     "test:integration:modules": "turbo run test:integration:modules",
     "test:unit": "turbo run test:unit",
+    "test:e2e": "turbo run test:e2e",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

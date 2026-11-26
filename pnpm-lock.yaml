@@ -136,6 +136,18 @@ importers:
         specifier: 4.1.12
         version: 4.1.12(@opentelemetry/api@1.9.0)(@types/node@20.19.27)(jsdom@31.0.0)(vite@7.3.7(@types/node@20.19.27)(jiti@2.7.0)(terser@5.44.1)(yaml@2.9.0))
 
+  apps/e2e:
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.64.1
+        version: 1.64.1
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.27
+      typescript:
+        specifier: ^5.5.3
+        version: 5.9.3
+
   apps/storefront:
     dependencies:
       '@adyen/adyen-web':
@@ -179,10 +191,10 @@ importers:
         version: 8.6.0
       '@vercel/analytics':
         specifier: ^1.4.1
-        version: 1.6.1(next@16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5))(react@19.0.5)
+        version: 1.6.1(next@16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.64.1)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5))(react@19.0.5)
       geist:
         specifier: ^1.3.1
-        version: 1.5.1(next@16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5))
+        version: 1.5.1(next@16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.64.1)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5))
       instantsearch.js:
         specifier: ^4.114.0
         version: 4.114.0(algoliasearch@5.57.0)
@@ -191,7 +203,7 @@ importers:
         version: 4.17.21
       next:
         specifier: 16.3.8
-        version: 16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5)
+        version: 16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.64.1)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5)
       pg:
         specifier: ^8.11.3
         version: 8.16.3
@@ -2658,6 +2670,11 @@ packages:
 
   '@paypal/sdk-constants@1.0.157':
     resolution: {integrity: sha512-BjxWT9rK6dM1AOffSpvHYY47/8BY775jgEYYiwH6eL4YaqU5Epcw7zOtwQ8L4UaEn4FCAjZ2EWxaS83dCN7SpA==}
+
+  '@playwright/test@1.64.1':
+    resolution: {integrity: sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   '@posthog/core@1.8.1':
     resolution: {integrity: sha512-jfzBtQIk9auRi/biO+G/gumK5KxqsD5wOr7XpYMROE/I3pazjP4zIziinp21iQuIQJMXrDvwt9Af3njgOGwtew==}
@@ -7339,6 +7356,16 @@ packages:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
 
+  playwright-core@1.64.1:
+    resolution: {integrity: sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.64.1:
+    resolution: {integrity: sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   pluralize@8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
     engines: {node: '>=4'}
@@ -11993,6 +12020,10 @@ snapshots:
     dependencies:
       hi-base32: 0.5.1
 
+  '@playwright/test@1.64.1':
+    dependencies:
+      playwright: 1.64.1
+
   '@posthog/core@1.8.1':
     dependencies:
       cross-spawn: 7.0.6
@@ -14545,9 +14576,9 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
 
-  '@vercel/analytics@1.6.1(next@16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5))(react@19.0.5)':
+  '@vercel/analytics@1.6.1(next@16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.64.1)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5))(react@19.0.5)':
     optionalDependencies:
-      next: 16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5)
+      next: 16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.64.1)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5)
       react: 19.0.5
 
   '@vitejs/plugin-react@5.2.0(vite@7.3.7(@types/node@20.19.27)(jiti@2.7.0)(terser@5.44.1)(yaml@2.9.0))':
@@ -15780,7 +15811,7 @@ snapshots:
       '@next/eslint-plugin-next': 16.3.8(eslint@9.39.4(jiti@1.21.7))
       eslint: 9.39.4(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@1.21.7))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
       eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.4(jiti@1.21.7))
       eslint-plugin-react: 7.37.5(eslint@9.39.4(jiti@1.21.7))
@@ -15803,7 +15834,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@1.21.7)):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.3
@@ -15818,14 +15849,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.72.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7)):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.72.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 8.72.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)
       eslint: 9.39.4(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@1.21.7))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
     transitivePeerDependencies:
       - supports-color
 
@@ -15840,7 +15871,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.39.4(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.72.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.72.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -16300,9 +16331,9 @@ snapshots:
 
   functions-have-names@1.2.3: {}
 
-  geist@1.5.1(next@16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5)):
+  geist@1.5.1(next@16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.64.1)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5)):
     dependencies:
-      next: 16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5)
+      next: 16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.64.1)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5)
 
   generator-function@2.0.1: {}
 
@@ -17865,7 +17896,7 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  next@16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5):
+  next@16.3.8(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.64.1)(@types/node@20.19.27)(react-dom@19.0.5(react@19.0.5))(react@19.0.5):
     dependencies:
       '@next/env': 16.3.8
       '@swc/helpers': 0.5.23
@@ -17885,6 +17916,7 @@ snapshots:
       '@next/swc-win32-arm64-msvc': 16.3.8
       '@next/swc-win32-x64-msvc': 16.3.8
       '@opentelemetry/api': 1.9.0
+      '@playwright/test': 1.64.1
       sharp: 0.35.5(@types/node@20.19.27)
     transitivePeerDependencies:
       - '@babel/core'
@@ -18207,6 +18239,12 @@ snapshots:
   pkg-dir@4.2.0:
     dependencies:
       find-up: 4.1.0
+
+  playwright-core@1.64.1: {}
+
+  playwright@1.64.1:
+    dependencies:
+      playwright-core: 1.64.1
 
   pluralize@8.0.0: {}
 
