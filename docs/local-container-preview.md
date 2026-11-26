@@ -112,11 +112,20 @@ Open `http://localhost:18000` for the store and `http://localhost:19000/app` for
 The demo admin login is `admin@demo.local` with password `demo-admin-2026`.
 The backend and database are local demo instances with sample data.
 
-To repeat the browser regression check, set `CHROME_PATH` to a Chrome or Chromium executable and run:
+6. Check the catalog in a browser.
+
+Install the repository dependencies with Node 22.23.4 or later and pnpm 9.15.0.
+Then install the Playwright browser once and run the check:
 
 ```sh
-CHROME_PATH=/path/to/chrome node scripts/verify-local-preview.mjs
+pnpm install --frozen-lockfile
+pnpm --filter @b2b-starter/e2e exec playwright install chromium
+node scripts/verify-local-preview.mjs
 ```
 
-The check opens the seeded store in a temporary browser profile and checks that product search returns the sample catalog.
+The check runs the catalog test from `apps/e2e/tests/catalog.spec.ts` against `http://localhost:18000`.
+The test checks that the store lists the eight seeded products.
+It then applies the Laptops filter and checks that only the laptop remains.
+The check fails if the storefront is unavailable or the catalog does not load.
 Set `PREVIEW_URL` if the storefront uses a different host or port.
+The pull request checks run the same test against the browser test storefront, as described in `apps/e2e/README.md`.

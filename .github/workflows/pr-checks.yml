@@ -147,6 +147,8 @@ jobs:
         env:
           E2E_DATABASE_URL: postgres://postgres:postgres@localhost:5432/medusa_e2e
         run: pnpm test:e2e
+      - name: Test that the local preview check fails without a preview
+        run: node --test tests/verify-local-preview.test.mjs
       - name: Upload the Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
