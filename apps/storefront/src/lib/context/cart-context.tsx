@@ -75,6 +75,17 @@ export function CartProvider({
     setIsUpdatingCart(false)
   }, [cart])
 
+  // Undo an optimistic change that the server refused. The cart prop does not
+  // change after a refusal, so clear the updating state here too.
+  const rollBack = useCallback(
+    (prevCart: B2BCart, message: string) => {
+      toast.error(message)
+      setOptimisticCart(prevCart)
+      setIsUpdatingCart(false)
+    },
+    [setOptimisticCart]
+  )
+
   const handleOptimisticAddToCart = useCallback(
     async (payload: AddToCartEventPayload) => {
       let prevCart = {} as B2BCart
@@ -173,19 +184,17 @@ export function CartProvider({
         })
           .then(async (result) => {
             if (result.error?.code === "cart_pending_approval") {
-              toast.error("Cart is locked for approval.")
-              setOptimisticCart(prevCart)
+              rollBack(prevCart, "Cart is locked for approval.")
               return
             }
             await onCartUpdated?.()
           })
           .catch(() => {
-            toast.error("Failed to add to cart")
-            setOptimisticCart(prevCart)
+            rollBack(prevCart, "Failed to add to cart")
           })
       })
     },
-    [cart?.approvals, countryCode, setOptimisticCart, onCartUpdated]
+    [cart?.approvals, countryCode, setOptimisticCart, onCartUpdated, rollBack]
   )
 
   useEffect(() => {
@@ -224,9 +233,8 @@ export function CartProvider({
 
     await deleteLineItem(lineItem)
       .then(onCartUpdated)
-      .catch((e) => {
-        toast.error("Failed to delete item")
-        setOptimisticCart(prevCart)
+      .catch(() => {
+        rollBack(prevCart, "Failed to delete item")
       })
   }
 
@@ -287,9 +295,8 @@ export function CartProvider({
         data: { quantity },
       })
         .then(onCartUpdated)
-        .catch((e) => {
-          toast.error("Failed to update cart quantity")
-          setOptimisticCart(prevCart)
+        .catch(() => {
+          rollBack(prevCart, "Failed to update cart quantity")
         })
     }
   }
@@ -308,9 +315,8 @@ export function CartProvider({
 
     await emptyCart()
       .then(onCartUpdated)
-      .catch((e) => {
-        toast.error("Failed to empty cart")
-        setOptimisticCart(prevCart)
+      .catch(() => {
+        rollBack(prevCart, "Failed to empty cart")
       })
   }
 

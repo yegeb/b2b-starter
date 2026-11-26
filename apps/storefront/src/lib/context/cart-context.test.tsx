@@ -1,12 +1,13 @@
-import { addToCartBulk } from "@/lib/data/cart"
+import { addToCartBulk, deleteLineItem } from "@/lib/data/cart"
 import {
   addToCartEventBus,
   type AddToCartEventPayload,
 } from "@/lib/data/cart-event-bus"
-import { CartProvider } from "@/lib/context/cart-context"
+import { CartProvider, useCart } from "@/lib/context/cart-context"
+import CartTotals from "@/modules/cart/components/cart-totals"
 import { B2BCart } from "@/types/global"
 import { toast } from "@medusajs/ui"
-import { render, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/lib/data/cart", () => ({
@@ -16,7 +17,10 @@ vi.mock("@/lib/data/cart", () => ({
   updateLineItem: vi.fn(),
 }))
 vi.mock("@vercel/analytics", () => ({ track: vi.fn() }))
-vi.mock("@medusajs/ui", () => ({ toast: { error: vi.fn() } }))
+vi.mock("@medusajs/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@medusajs/ui")>()),
+  toast: { error: vi.fn() },
+}))
 vi.mock("next/navigation", () => ({
   useParams: () => ({ countryCode: "dk" }),
 }))
@@ -50,6 +54,55 @@ const addToCartWith = async (onCartUpdated = vi.fn(async () => {})) => {
 }
 
 describe("CartProvider bulk add", () => {
+  it.each([
+    [
+      "the backend refuses it for a pending approval",
+      () =>
+        vi.mocked(addToCartBulk).mockResolvedValue({
+          error: {
+            code: "cart_pending_approval",
+            message: "Cart is pending approval",
+          },
+        }),
+    ],
+    [
+      "the request fails",
+      () => vi.mocked(addToCartBulk).mockRejectedValue(new Error("Failed")),
+    ],
+  ])(
+    "shows the cart totals again after a refused add when %s",
+    async (_, refuse) => {
+      vi.mocked(addToCartBulk).mockReset()
+      vi.mocked(toast.error).mockClear()
+      refuse()
+      const cartWithTotals = {
+        ...cart,
+        currency_code: "eur",
+        total: 1000,
+        item_subtotal: 1000,
+        tax_total: 0,
+        shipping_total: 0,
+        discount_total: 0,
+        gift_card_total: 0,
+      } as unknown as B2BCart
+
+      render(
+        <CartProvider cart={cartWithTotals}>
+          <CartTotals />
+        </CartProvider>
+      )
+      expect(screen.getByTestId("cart-total")).toBeTruthy()
+
+      addToCartEventBus.emitCartAdd(payload)
+
+      await waitFor(() => expect(addToCartBulk).toHaveBeenCalled())
+      await waitFor(() => expect(toast.error).toHaveBeenCalled())
+      // The skeleton replaces the total while the cart updates. A refusal
+      // leaves the cart prop unchanged, so the provider must clear it itself.
+      await waitFor(() => expect(screen.getByTestId("cart-total")).toBeTruthy())
+    }
+  )
+
   beforeEach(() => {
     vi.mocked(toast.error).mockImplementation(() => "")
   })
@@ -119,5 +172,41 @@ describe("CartProvider bulk add", () => {
 
     await waitFor(() => expect(onCartUpdated).toHaveBeenCalled())
     expect(toast.error).not.toHaveBeenCalled()
+  })
+})
+
+describe("CartProvider item changes", () => {
+  const DeleteFirstItem = () => {
+    const { cart, handleDeleteItem } = useCart()
+    return (
+      <button onClick={() => handleDeleteItem(cart!.items![0].id)}>
+        Delete
+      </button>
+    )
+  }
+
+  it("shows the cart totals again after a refused delete", async () => {
+    vi.mocked(toast.error).mockClear()
+    vi.mocked(deleteLineItem).mockRejectedValue(new Error("Failed"))
+    const cartWithItem = {
+      ...cart,
+      currency_code: "eur",
+      total: 1000,
+      items: [{ id: "item_1", quantity: 1, unit_price: 1000 }],
+    } as unknown as B2BCart
+
+    render(
+      <CartProvider cart={cartWithItem}>
+        <CartTotals />
+        <DeleteFirstItem />
+      </CartProvider>
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }))
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Failed to delete item")
+    )
+    await waitFor(() => expect(screen.getByTestId("cart-total")).toBeTruthy())
   })
 })
