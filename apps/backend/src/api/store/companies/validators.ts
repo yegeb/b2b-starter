@@ -29,8 +29,9 @@ export const StoreCreateCompany = z
 export type StoreUpdateCompanyType = z.infer<typeof StoreUpdateCompany>;
 /*
 The storefront sends the company as it reads it, including read-only fields.
-Drop those fields before validation. Medusa makes object body schemas strict,
-so any other unknown key, such as a body `id`, is still rejected.
+Drop those fields, including a body `id`, before validation. The route `id`
+always selects the company. Medusa makes object body schemas strict, so any
+other unknown key, such as `metadata`, is still rejected.
 */
 const companyReadOnlyFields = [
   "id",
