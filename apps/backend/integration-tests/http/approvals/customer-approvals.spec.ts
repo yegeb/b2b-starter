@@ -185,6 +185,61 @@ medusaIntegrationTestRunner({
       );
     });
 
+    describe("a cart with a pending approval", () => {
+      const expectNotAllowed = async (
+        request: Promise<any>,
+        message: string
+      ) => {
+        const error = await request.catch((e) => e);
+
+        expect(error.response?.status).toEqual(400);
+        expect(error.response.data).toEqual(
+          expect.objectContaining({ type: "not_allowed", message })
+        );
+      };
+
+      it("refuses new line items with a client error", async () => {
+        await expectNotAllowed(
+          api.post(
+            `/store/carts/${cartA.id}/line-items`,
+            { variant_id: variantId, quantity: 1 },
+            buyerA.headers
+          ),
+          "Cart is pending approval"
+        );
+        await expectNotAllowed(
+          api.post(
+            `/store/carts/${cartA.id}/line-items/bulk`,
+            { line_items: [{ variant_id: variantId, quantity: 1 }] },
+            buyerA.headers
+          ),
+          "Cart is pending approval"
+        );
+      });
+
+      it("refuses cart updates with a client error", async () => {
+        await expectNotAllowed(
+          api.post(
+            `/store/carts/${cartA.id}`,
+            { email: "buyer-a@example.test" },
+            buyerA.headers
+          ),
+          "Cart is pending approval"
+        );
+      });
+
+      it("refuses a second approval request with a client error", async () => {
+        const error = await api
+          .post(`/store/carts/${cartA.id}/approvals`, {}, buyerA.headers)
+          .catch((e) => e);
+
+        expect(error.response?.status).toEqual(400);
+        expect(error.response.data.message).toEqual(
+          "Cart already has a pending approval"
+        );
+      });
+    });
+
     describe("GET /store/customers/me/approvals", () => {
       it("returns only the signed-in buyer's own carts with pending approvals", async () => {
         const response = await listOwnApprovals(
