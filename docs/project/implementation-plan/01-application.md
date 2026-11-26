@@ -154,10 +154,14 @@ The Vitest file `src/modules/account/__tests__/company-card.test.tsx` gave 1 fil
 Before the fix, with only `apps/storefront/src/modules/account/components/company-card/index.tsx` restored from `main`, the same file gave 2 failed, 1 passed, 3 total.
 "shows only the error toast when the update fails" failed because the success toast was called once.
 "sends only the editable company fields" failed because the body included the read-only `approval_settings` field.
-At `f24559a`, after the rebase onto `main`, root `pnpm test:integration:http` on a PostgreSQL 16 instance for this task only gave 7 suites passed, 69 tests passed, 0 failed.
-That total is the 61 A4 tests plus the 8 tests of `http/demo-fixtures/demo-fixtures.spec.ts`, which came from `main` (A2).
-At `f24559a`, `pnpm --filter @b2b-starter/backend typecheck` exited with status 0, and `tsc --noEmit -p src/admin/tsconfig.json` exited with status 0.
-The browser buyer journey from A3 was not part of this check.
+After the rebase onto `main` at `8ff5a78`, the head of this change is `6933a5a`.
+At `6933a5a` the backend has 8 HTTP spec files under `apps/backend/integration-tests/http/`: `admin/quotes/quotes.spec.ts`, `approvals/company-scope.spec.ts`, `approvals/customer-approvals.spec.ts`, `companies/companies.spec.ts`, `companies/company-scope.spec.ts`, `demo-fixtures/demo-fixtures.spec.ts`, `quotes/ownership.spec.ts`, and `quotes/quotes.spec.ts`.
+`approvals/customer-approvals.spec.ts` comes from A3 and calls routes that A4 re-guards with `ensureCustomerOwnsCart` and `ensureCompanyApprover`.
+At `6933a5a`, with Node 22.23.4, pnpm 9.15.0, and a frozen lockfile, root `pnpm test` passed: the backend gave 2 files and 4 tests, and the storefront gave 2 files and 10 tests.
+At `6933a5a`, `pnpm --filter @b2b-starter/backend typecheck` exited with status 0, and `tsc --noEmit -p src/admin/tsconfig.json` exited with status 0.
+The local HTTP and browser suites did not run at `6933a5a`, because the local PostgreSQL container was unavailable.
+The GitHub Actions job "Backend HTTP and browser tests" runs `pnpm test:integration:http` and `pnpm test:e2e` on a PostgreSQL instance for that job only.
+That job is the authoritative result for the final head, and the PR body records its per-suite counts.
 [Ownership middleware](../../../apps/backend/src/api/middlewares/ensure-ownership.ts) · [HTTP suites](../../../apps/backend/integration-tests/http)
 
 | ID · owner | Prerequisite | Task and acceptance evidence |
