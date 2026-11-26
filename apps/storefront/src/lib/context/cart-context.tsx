@@ -171,13 +171,16 @@ export function CartProvider({
           })),
           countryCode: countryCode as string,
         })
-          .then(onCartUpdated)
-          .catch((e) => {
-            if (e.message === "Cart is pending approval") {
+          .then(async (result) => {
+            if (result.error?.code === "cart_pending_approval") {
               toast.error("Cart is locked for approval.")
-            } else {
-              toast.error("Failed to add to cart")
+              setOptimisticCart(prevCart)
+              return
             }
+            await onCartUpdated?.()
+          })
+          .catch(() => {
+            toast.error("Failed to add to cart")
             setOptimisticCart(prevCart)
           })
       })
