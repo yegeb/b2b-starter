@@ -2,6 +2,7 @@
 
 import { sdk } from "@/lib/config"
 import medusaError from "@/lib/util/medusa-error"
+import { addLineItemsBulk } from "@/lib/util/server-cart"
 import { StoreApprovalResponse } from "@/types/approval"
 import { B2BCart } from "@/types/global"
 import { HttpTypes, StoreCart } from "@medusajs/types"
@@ -170,26 +171,11 @@ export async function addToCartBulk({
     throw new Error("Error retrieving or creating cart")
   }
 
-  const headers = {
-    "Content-Type": "application/json",
-    ...(await getAuthHeaders()),
-  } as Record<string, any>
-
-  if (process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY) {
-    headers["x-publishable-api-key"] =
-      process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
-  }
-
-  await fetch(
-    `${
-      process.env.MEDUSA_BACKEND_URL ||
-      process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
-    }/store/carts/${cart.id}/line-items/bulk`,
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ line_items: lineItems }),
-    }
+  // The SDK rejects non-2xx responses, so a refused request reaches the caller.
+  await addLineItemsBulk(
+    cart.id,
+    lineItems,
+    (await getAuthHeaders()) as Record<string, string>
   )
     .then(async () => {
       const fullfillmentCacheTag = await getCacheTag("fulfillment")
