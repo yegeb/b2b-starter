@@ -42,6 +42,37 @@
 
 **A3 repair trial.** In a disposable copy, the account layout fetched pending approvals only when `customer.employee.is_admin` was true. Rebuild the storefront with the seeded API and run it with `next start`. A browser session for the ordinary buyer reopened the merchant-sent quote and displayed **Pending Customer** and **Accept Quote**. This check covered quote detail. The orders page has its own approvals fetch. Verify that page and the approver's queue when applying the fix.
 
+### A3 implementation verification on 26 November 2026
+
+The isolated demo used PostgreSQL 16, Node 22.23.4, pnpm 9.15.0, and development servers from this worktree.
+Before the fix, an ordinary employee signed in and the account page displayed a server error with `Forbidden`.
+After the fix, the same buyer opened the account overview and orders page.
+The buyer browsed eight products, added one `WEBCAM-BLACK` at EUR 59, and requested a quote in the storefront.
+Quote `quo_01M8BBF9PJ65VWEGHB7S8SV794` initially showed `pending_merchant` and referenced draft order `order_01M8BBF9JVRAMFZCBPZNJRW3NK`.
+The merchant changed the quantity to 2 and unit price to EUR 24 in Admin, then sent the quote.
+The buyer reopened the detail page and saw `pending_customer`, quantity 2, unit price EUR 24, and total EUR 48.
+The Admin quote page also showed a missing company name and `NaN` spending limit, tracked in [issue 89](https://github.com/yegeb/b2b-starter/issues/89).
+
+A separate buyer cart requested admin approval through the Store API.
+The company approver saw one pending request in the navigation and approval queue, then approved it in the storefront.
+Approval `appr_01M8BBTSZKJ3MATFWRJ20GJQ0D` moved to approved, and the approver orders page loaded.
+The buyer completed that cart through the Store API with a seeded shipping option and `pp_system_default`.
+The response returned order `order_01M8BBXTWG9HCTRTYTVXYA9KBK` for EUR 69.
+No external payment provider was used.
+
+After a restart of the same fixture, the views were checked again in the browser.
+The ordinary buyer's overview, orders and quote detail pages loaded without an error.
+The buyer had no **Approvals** link and no **Pending Approvals** section.
+The quote detail still showed `pending_customer`, quantity 2, unit price EUR 24 and total EUR 48.
+A new cart requested admin approval as `appr_01M8BN1BSMP7S0DZCMEEVGHR21`.
+The approver's navigation showed **Approvals 1**, and the orders and approvals pages listed the pending EUR 59 cart.
+
+The Admin price override saved a wrong price after an edit of a grouped value.
+Deleting one digit from `1,500` displayed `NaN` and saved EUR 1.00, tracked in [issue 96](https://github.com/yegeb/b2b-starter/issues/96).
+Replace the whole value when entering a price until that issue is fixed.
+The storefront type check reports five errors that also occur on the base revision, tracked in [issue 97](https://github.com/yegeb/b2b-starter/issues/97).
+The storefront has no test runner, so the role-specific views have no automated test yet, tracked in [issue 98](https://github.com/yegeb/b2b-starter/issues/98).
+
 | Actor | Intended scope for A4 | Acceptance fixture |
 | --- | --- | --- |
 | Visitor | Published catalog | Browse a seeded product. Private account actions require sign-in. |
