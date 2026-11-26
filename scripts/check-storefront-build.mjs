@@ -149,7 +149,12 @@ async function buildStorefront(name, env) {
   const log = join(outputDir, `${name}.log`)
   const status = await run("pnpm", ["--filter", "@b2b-starter/storefront", "build"], {
     cwd: root,
-    env: { ...inherited, NEXT_TELEMETRY_DISABLED: "1", ...env },
+    env: {
+      ...inherited,
+      NEXT_TELEMETRY_DISABLED: "1",
+      MEDUSA_BACKEND_URL: env.NEXT_PUBLIC_MEDUSA_BACKEND_URL,
+      ...env,
+    },
     log,
   })
   const analysis = analyzeBuildLog(await readFile(log, "utf8"))
