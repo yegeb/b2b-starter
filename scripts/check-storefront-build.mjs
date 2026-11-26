@@ -4,6 +4,8 @@
 //   1. With the Medusa API unavailable. The build must still succeed.
 //   2. With a migrated and seeded API. The build must succeed and prerender
 //      the seeded product pages.
+// Both builds set NEXT_PUBLIC_BASE_URL, as deployments do. Next.js then
+// prerenders more routes during the build than without it.
 //
 // Requirements:
 //   - BUILD_CHECK_DATABASE_URL: a PostgreSQL connection with permission to
@@ -47,6 +49,7 @@ const databaseName = `build_check_${randomBytes(6).toString("hex")}`
 const databaseUrl = new URL(serverUrl)
 databaseUrl.pathname = `/${databaseName}`
 const region = process.env.BUILD_CHECK_REGION || "dk"
+const baseUrl = "http://localhost:8000"
 const outputDir = process.env.BUILD_CHECK_OUTPUT_DIR
   ? resolve(process.env.BUILD_CHECK_OUTPUT_DIR)
   : await mkdtemp(join(tmpdir(), "storefront-build-check-"))
@@ -352,6 +355,7 @@ try {
       NEXT_PUBLIC_MEDUSA_BACKEND_URL: `http://127.0.0.1:${unusedPort}`,
       NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: "pk_unavailable_api_check",
       NEXT_PUBLIC_DEFAULT_REGION: region,
+      NEXT_PUBLIC_BASE_URL: baseUrl,
     })
   )
 
@@ -392,6 +396,7 @@ try {
       NEXT_PUBLIC_MEDUSA_BACKEND_URL: apiUrl,
       NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: await publishableKey(apiUrl, email, password),
       NEXT_PUBLIC_DEFAULT_REGION: region,
+      NEXT_PUBLIC_BASE_URL: baseUrl,
     })
   )
 } catch (error) {
