@@ -32,7 +32,8 @@ async function relatedProductIds(
     withDeleted,
   })
 
-  return (data as Record<string, any>[])
+  return (data as (Record<string, any> | undefined)[])
+    .filter((row): row is Record<string, any> => Boolean(row))
     .flatMap(pick)
     .filter((id): id is string => Boolean(id))
 }
