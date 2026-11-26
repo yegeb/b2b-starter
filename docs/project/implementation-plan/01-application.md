@@ -81,13 +81,16 @@ Each test below failed on the code before its fix and passed after it.
 | Issue | Change | Regression test |
 | --- | --- | --- |
 | [98](https://github.com/yegeb/b2b-starter/issues/98) | Add the storefront test runner. | An ordinary employee's account layout and orders page render without a call to the approval list. A company admin still gets the pending count and the **Pending Approvals** list. Before the role check, the buyer cases failed with `Forbidden`. |
-| [89](https://github.com/yegeb/b2b-starter/issues/89) | Request `customer.employee.company` for the Admin quote page. Show `-` without an employee or company. | The page showed `$NaN` before the fix. It now shows EUR 1,000.00 and the company link. |
+| [104](https://github.com/yegeb/b2b-starter/issues/104) | Show "Only company admins can review approval requests." on the approvals page for other employees, without loading the approval lists. | Before the fix, the page rendered the admin lists for an ordinary employee. In the browser, the lists returned 403 and the page showed a server error. |
+| [89](https://github.com/yegeb/b2b-starter/issues/89) | Request `customer.employee.company` for the Admin quote page. Show `-` without an employee or company. | The page showed `$NaN` before the fix. It now shows the spending limit in the company currency and the company link. The test also fails if the page stops requesting the company. |
 | [96](https://github.com/yegeb/b2b-starter/issues/96) | Store the unformatted price value. Send an update only for a valid changed price. | Before the fix, deleting one digit from `1,500` displayed `NaN`, and an unchanged field sent updates. The edit now saves 150. |
 | [97](https://github.com/yegeb/b2b-starter/issues/97) | Fix nullable profile inputs and the cart drawer timer type. Declare `zod` as a peer of `@hookform/resolvers` 3 so that the storefront resolver uses the storefront's zod 3. | `tsc --noEmit` for the storefront exits zero. Pull request checks now run it. |
 
 In the live demo, the Admin quote page for `quo_01M8BN5A97F8GH6NVYFTXBW042` showed EUR 1,000.00 and linked to the buyer's company.
 On the same quote, deleting one digit from `1,500` displayed `150` and saved EUR 150.00.
 Focusing and leaving the field without a change sent no update.
+An ordinary buyer who opened `/dk/account/approvals` saw the not-available message, and the storefront sent no approvals request.
+The company admin still saw the pending, approved and rejected lists.
 The Admin type check has one error in `manage-items-section.tsx` that also occurs on the base revision, tracked in [issue 109](https://github.com/yegeb/b2b-starter/issues/109).
 
 | Actor | Intended scope for A4 | Acceptance fixture |
