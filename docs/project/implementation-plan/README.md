@@ -1,6 +1,6 @@
 # GCP implementation roadmap
 
-**Implementation starts with A1 and A3.** Local trials reproduced the quote, approval and checkout flows and identified two repairs. In a disposable copy, all 15 HTTP cases passed after the test-fixture and order-summary updates. A role check in the storefront restored the buyer's sent quote. Apply the repairs to the application and repeat the checks on the implementation revision. [Application evidence](01-application.md)
+**Implementation starts with A1 and A3.** Local trials reproduced the quote, approval and checkout flows and identified two repairs. In a disposable copy, all 15 HTTP cases passed after the test-fixture and order-summary updates. A role check in the storefront restored the buyer's sent quote. Both repairs are now applied to the application, and the checks were repeated on the implementation revision. [Application evidence](01-application.md) · [HTTP suite results](../../../apps/backend/integration-tests/http/README.md)
 
 The ten briefs specify the implementation backlog. Local observations cover the application and selected process boundaries. The cloud-facing briefs specify interfaces, dependencies and acceptance tests. The account owner must supply quota, credit, DNS and sender evidence before a deployed trial. Follow the [release sequence](10-integration.md) when building.
 
