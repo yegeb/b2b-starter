@@ -12,6 +12,7 @@
     "build": "next build",
     "start": "next start -p 8000",
     "lint": "eslint .",
+    "test": "vitest run",
     "clean": "rm -rf .next node_modules",
     "analyze": "ANALYZE=true next build"
   },
@@ -20,10 +21,10 @@
     "@headlessui/react": "^2.2.0",
     "@hookform/resolvers": "^3.9.0",
     "@medusajs/icons": "2.22.7",
+    "@medusajs/instantsearch-adapter": "2.22.7",
     "@medusajs/js-sdk": "2.22.7",
     "@medusajs/types": "2.22.7",
     "@medusajs/ui": "4.2.9",
-    "@medusajs/instantsearch-adapter": "2.22.7",
     "@paypal/paypal-js": "^5.0.6",
     "@paypal/react-paypal-js": "^7.8.1",
     "@radix-ui/react-dialog": "^1.1.1",
@@ -49,6 +50,8 @@
   "devDependencies": {
     "@babel/core": "^7.17.5",
     "@medusajs/ui-preset": "2.22.7",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
     "@types/lodash": "^4.14.195",
     "@types/node": "^20.0.0",
     "@types/pg": "^8.11.0",
@@ -60,10 +63,12 @@
     "babel-loader": "^8.2.3",
     "eslint": "^9.13.0",
     "eslint-config-next": "16.3.8",
+    "jsdom": "31.0.0",
     "postcss": "^8.4.8",
     "prettier": "^2.8.8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "vitest": "4.1.12"
   },
   "engines": {
     "node": ">=22.23.4"
