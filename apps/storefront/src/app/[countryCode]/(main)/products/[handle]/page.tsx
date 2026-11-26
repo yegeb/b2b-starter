@@ -3,6 +3,7 @@ import { getAuthHeaders } from "@/lib/data/cookies"
 import { getProductByHandle } from "@/lib/data/products"
 import { getRegion, listRegions } from "@/lib/data/regions"
 import { isVariantInStock } from "@/lib/util/inventory"
+import { staticParamsOrEmpty } from "@/lib/util/static-params"
 import {
   buildProductStructuredData,
   getPricedVariants,
@@ -23,7 +24,7 @@ type Props = {
 }
 
 export async function generateStaticParams() {
-  try {
+  return staticParamsOrEmpty("product pages", async () => {
     const countryCodes = await listRegions().then((regions) =>
       regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat()
     )
@@ -46,14 +47,7 @@ export async function generateStaticParams() {
       )
       .flat()
       .filter((param) => param.handle)
-  } catch (error) {
-    console.error(
-      `Failed to generate static paths for product pages: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }.`
-    )
-    return []
-  }
+  })
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
