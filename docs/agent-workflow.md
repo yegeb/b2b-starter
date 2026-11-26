@@ -10,11 +10,17 @@ load new role definitions immediately.
 | `backend` | Medusa API routes, workflows, modules, migrations, and backend tests |
 | `frontend` | Next.js UI, data access, accessibility, and frontend checks |
 | `infrastructure` | GCP, Kubernetes, functions, deployment files, and architecture documentation |
-| `reviewer` | Independent review without edits or GitHub approvals |
+| `planner` | Research, implementation plans, dependencies, and verification criteria |
+| `reviewer` | Independent review and audit of code, plans, architecture, and verification |
 
 Use parallel agents only for independent tasks. Define each task's outcome,
 file ownership, interface requirements, and checks before delegation. Use one
 agent for a small task. Serialize changes to shared interfaces and the lockfile.
+
+For CMPE 48A work, include the roadmap task ID, brief, and verification criteria
+in the assignment. See the [implementation roadmap](project/implementation-plan/README.md).
+If the brief is absent from the agent's base, provide the relevant section.
+Identify the revision or working tree that supplied it.
 
 ## Separate worktrees
 
