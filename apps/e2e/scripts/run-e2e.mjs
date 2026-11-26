@@ -123,7 +123,9 @@ const startServerBackendProxy = (logPath) =>
       )
       upstream.on("error", (error) => {
         outgoing.writeHead(502, { "content-type": "text/plain" })
-        outgoing.end(`The e2e proxy could not reach the backend: ${error.message}`)
+        outgoing.end(
+          `The e2e proxy could not reach the backend: ${error.message}`
+        )
       })
       incoming.pipe(upstream)
     })
@@ -205,7 +207,9 @@ try {
   mkdirSync(stateDir, { recursive: true })
   const serverBackendLog = join(stateDir, "server-backend-requests.jsonl")
 
-  console.log(`Forwarding the storefront server's requests from ${serverBackendUrl}`)
+  console.log(
+    `Forwarding the storefront server's requests from ${serverBackendUrl}`
+  )
   await startServerBackendProxy(serverBackendLog)
 
   console.log(`Starting the storefront on ${storefrontUrl}`)

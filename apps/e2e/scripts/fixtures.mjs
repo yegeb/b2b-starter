@@ -173,7 +173,10 @@ export const createFixtures = async ({ backendUrl, admin, runId }) => {
   // Starts without a cart, so the browser creates the shopper's first one.
   const shopper = await createEmployee("shopper", companyB)
   // Owns a cart that the browser test sends for approval after the page loads.
-  const lateApprovalBuyer = await createEmployee("late-approval-buyer", companyB)
+  const lateApprovalBuyer = await createEmployee(
+    "late-approval-buyer",
+    companyB
+  )
 
   const buyerCartId = await requestApproval(buyer)
   const colleagueCartId = await requestApproval(colleague)
