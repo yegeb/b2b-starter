@@ -102,10 +102,14 @@ function freePort() {
 const children = new Set()
 let interrupted = null
 
+function ensureNotInterrupted() {
+  if (interrupted) throw new Error(`The check was interrupted by ${interrupted}.`)
+}
+
 // Start a child process that cleanup stops. Refuse to start one after an
 // interrupt, so no process outlives the cleanup.
 function start(command, args, options) {
-  if (interrupted) throw new Error(`The check was interrupted by ${interrupted}.`)
+  ensureNotInterrupted()
   const child = spawn(command, args, { ...options, detached: true })
   children.add(child)
   child.once("close", () => children.delete(child))
@@ -293,7 +297,7 @@ function stop(child) {
 
 const results = []
 const errors = []
-let databaseCreated = false
+let databaseCreation = null
 let cleanup
 
 // Stop every child process, drop the database the check created and remove
@@ -301,8 +305,9 @@ let cleanup
 function cleanUp() {
   cleanup ??= (async () => {
     await Promise.all([...children].map(stop))
-    if (databaseCreated) {
+    if (databaseCreation) {
       try {
+        await databaseCreation.catch(() => {})
         await withDatabaseServer((client) =>
           client.query(`DROP DATABASE IF EXISTS "${databaseName}" WITH (FORCE)`)
         )
@@ -351,8 +356,11 @@ try {
   )
 
   // 2. Seeded API available.
-  databaseCreated = true
-  await withDatabaseServer((client) => client.query(`CREATE DATABASE "${databaseName}"`))
+  ensureNotInterrupted()
+  databaseCreation = withDatabaseServer((client) =>
+    client.query(`CREATE DATABASE "${databaseName}"`)
+  )
+  await databaseCreation
   await step("backend-migrate", medusaBin, ["db:migrate"], { cwd: backendDir, env: backendEnv })
   await step("backend-build", "pnpm", ["--filter", "@b2b-starter/backend", "build"], {
     cwd: root,
