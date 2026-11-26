@@ -30,6 +30,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Type-check the backend
+        run: pnpm --filter @b2b-starter/backend typecheck
       - name: Build the backend
         run: pnpm --filter @b2b-starter/backend build
       - name: Type-check the storefront

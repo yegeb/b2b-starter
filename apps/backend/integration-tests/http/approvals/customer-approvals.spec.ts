@@ -15,7 +15,6 @@ jest.setTimeout(120 * 1000);
 type StoreHeaders = { headers: Record<string, string> };
 
 medusaIntegrationTestRunner({
-  inApp: true,
   env: {},
   testSuite: ({ api, getContainer }) => {
     let publicHeaders: StoreHeaders;

@@ -6,10 +6,10 @@
 
 | Stage | Source observation | Implication |
 | --- | --- | --- |
-| Buyer requests | The confirmation component calls `createQuote`. The server action reads the cart cookie and auth headers and posts the cart ID. Store middleware authenticates the customer. The route takes the customer ID from the actor. [UI](../../../apps/storefront/src/modules/quotes/components/request-quote-confirmation/index.tsx) · [Server actions](../../../apps/storefront/src/lib/data/quotes.ts) · [Middleware](../../../apps/backend/src/api/store/quotes/middlewares.ts) · [Route](../../../apps/backend/src/api/store/quotes/route.ts) | **Reuse** the request. Verify cart ownership before creating a draft from the submitted cart. |
+| Buyer requests | The confirmation component calls `createQuote`. The server action reads the cart cookie and auth headers and posts the cart ID. Store middleware authenticates the customer. The route takes the customer ID from the actor. [UI](../../../apps/storefront/src/modules/quotes/components/request-quote-confirmation/index.tsx) · [Server actions](../../../apps/storefront/src/lib/data/quotes.ts) · [Middleware](../../../apps/backend/src/api/store/quotes/middlewares.ts) · [Route](../../../apps/backend/src/api/store/quotes/route.ts) | **Reuse** the request. Verify cart ownership before creating a draft from the submitted cart. Resolved by A4 (#36, #90): `ensureCustomerOwnsCart` checks the submitted cart. |
 | Medusa persists | The workflow reads items, currency, addresses and shipping. It creates a draft order, starts an order edit, and creates a quote linked to cart, customer, draft and order change. The model defaults to `pending_merchant`. [Workflow](../../../apps/backend/src/workflows/quote/workflows/create-request-for-quote.ts) · [Model](../../../apps/backend/src/modules/quote/models/quote.ts) | **Reuse** identifiers. Merchant edits can change prices and quantities. Capture the reviewed revision for a PDF. |
 | Merchant sends | The Admin quote page calls the send mutation. The Admin route runs the send workflow. The workflow queries the quote ID and sets `pending_customer`. It contains no PDF snapshot, revision counter or publication step. [Admin page](../../../apps/backend/src/admin/routes/quotes/%5BquoteId%5D/page.tsx) · [Route](../../../apps/backend/src/api/admin/quotes/%5Bid%5D/send/route.ts) · [Workflow](../../../apps/backend/src/workflows/quote/workflows/merchant-send-quote.ts) | **Change** the send transition to record a stable revision and durable publication intent. Define repeat-send semantics in 03 and 05. |
-| Buyer views | The account detail page fetches the quote and its order preview. The detail route scopes the query to the customer. The preview handler queries the quote by ID and calls the order module for the current preview. [Account page](../../../apps/storefront/src/app/%5BcountryCode%5D/(main)/account/@dashboard/quotes/details/%5Bid%5D/page.tsx) · [Detail route](../../../apps/backend/src/api/store/quotes/%5Bid%5D/route.ts) · [Preview route](../../../apps/backend/src/api/store/quotes/%5Bid%5D/preview/route.ts) | **Change** the preview lookup to use the same ownership scope. **Add** PDF state and authorized download. Trace ownership on all related actions before public deployment. |
+| Buyer views | The account detail page fetches the quote and its order preview. The detail route scopes the query to the customer. The preview handler queries the quote by ID and calls the order module for the current preview. [Account page](../../../apps/storefront/src/app/%5BcountryCode%5D/(main)/account/@dashboard/quotes/details/%5Bid%5D/page.tsx) · [Detail route](../../../apps/backend/src/api/store/quotes/%5Bid%5D/route.ts) · [Preview route](../../../apps/backend/src/api/store/quotes/%5Bid%5D/preview/route.ts) | **Change** the preview lookup to use the same ownership scope. **Add** PDF state and authorized download. Trace ownership on all related actions before public deployment. Resolved by A4 (#36, #90): `ensureCustomerOwnsQuote` scopes detail, preview, messages, accept and reject. |
 
 ## Other capabilities
 
@@ -92,7 +92,8 @@ On the same quote, deleting one digit from `1,500` displayed `150` and saved EUR
 Focusing and leaving the field without a change sent no update.
 An ordinary buyer who opened `/dk/account/approvals` saw the not-available message, and the storefront sent no approvals request.
 The company admin still saw the pending, approved and rejected lists.
-The Admin type check has one error in `manage-items-section.tsx` that also occurs on the base revision, tracked in [issue 109](https://github.com/yegeb/b2b-starter/issues/109).
+The Admin type check had one error in `manage-items-section.tsx` that also occurred on the base revision, tracked in [issue 109](https://github.com/yegeb/b2b-starter/issues/109).
+A4 fixes it; see the A4 evidence below.
 
 ### A3 browser regression tests
 
@@ -114,6 +115,55 @@ The pull request checks run the same command and the backend HTTP suites against
 | Buyer | Own cart, orders, quote details, preview, messages, transitions and PDF | Repeat the valid buyer journey. After implementing ownership checks, verify a different buyer cannot read or change its records. |
 | Company approver | Admin-type approvals for that employee's company | Same-company moderation succeeds. Other company records stay private and unchanged. |
 | Merchant | Admin-authenticated order edit, quote send and catalog changes | Check Admin confirmation, buyer-visible reviewed revision and one intent per send. |
+
+**A4 ownership, implementation branch.**
+Before the fix, the new suites ran against the unfixed routes.
+In `integration-tests/http/quotes/ownership.spec.ts`, 5 of 11 tests failed.
+A buyer of another company got a success response from `GET /store/quotes/:id/preview`, `POST /store/quotes/:id/messages`, `POST /store/quotes/:id/accept`, `POST /store/quotes/:id/reject`, and `POST /store/quotes` with buyer A's cart.
+`GET /store/quotes/:id` already returned 404.
+In `integration-tests/http/approvals/company-scope.spec.ts`, 2 of 6 tests failed.
+A buyer of another company requested an approval on company A's cart, and an approver of company B approved and rejected company A's admin approval.
+For the Store company routes (#102, #110), `integration-tests/http/companies/company-scope.spec.ts` with the updated `companies.spec.ts` gave 20 failed, 15 passed, 35 total.
+The admin of another company read, changed, and deleted company A, its employees, and its approval settings.
+A non-admin employee changed and deleted the company.
+The employee list returned HTTP 500 for every caller.
+For the backend type check (#103, #109), `tsc --noEmit -p .` exited with status 2 and 5 errors.
+The errors were TS2353 `inApp` in three HTTP specs, TS2339 `default` in `integration-tests/utils/admin.ts`, and TS2741 in `src/admin/routes/quotes/components/quote-manage/manage-items-section.tsx`.
+For the company update body (#111), commit `c478e06` added two `POST /store/companies/:id` tests: a body `id` cannot redirect the update, and the company as the storefront reads it, with approval settings, is accepted.
+At `c478e06`, root `pnpm test:integration:http` gave 1 suite failed, 5 passed, 2 tests failed, 59 passed, 61 total.
+Both new tests got HTTP 400, because Medusa makes object body schemas strict.
+After the fix, at `c478e06` plus the `StoreUpdateCompany` validator change that drops read-only fields, root `pnpm test:integration:http` ran with Node 22.23.4, pnpm 9.15.0, a frozen lockfile, and a PostgreSQL 16 instance for this task only.
+These results apply to the backend code at the head of this change, which the #111 storefront commit `f24559a` did not change.
+6 suites passed, 61 tests passed, 0 failed.
+
+| Suite | Issues | Tests passed |
+| --- | --- | --- |
+| `http/companies/company-scope.spec.ts` | #102, #110, #111 | 29 |
+| `http/quotes/ownership.spec.ts` | #36, #90 | 11 |
+| `http/approvals/company-scope.spec.ts` | #36 | 6 |
+| `http/companies/companies.spec.ts` | #102 | 7 |
+| `http/quotes/quotes.spec.ts` | #36 | 7 |
+| `http/admin/quotes/quotes.spec.ts` | - | 1 |
+
+`http/companies/companies.spec.ts` changed: the company creator joins as its first admin, as storefront sign-up does, and deleting an unreachable company now expects 404 instead of 204.
+`http/quotes/quotes.spec.ts` is the existing quote journey: create, merchant send, accept, reject.
+`pnpm --filter @b2b-starter/backend typecheck` (`tsc --noEmit -p .`) exited with status 0 and no errors (#103).
+`pnpm --filter @b2b-starter/backend exec tsc --noEmit -p src/admin/tsconfig.json` exited with status 0 and no errors (#109).
+`pnpm lint` reported 0 errors.
+For the company update toast and body (#111), `pnpm --filter @b2b-starter/storefront test` ran at `f24559a` with Node 22.23.4, pnpm 9.15.0, and a frozen lockfile.
+The Vitest file `src/modules/account/__tests__/company-card.test.tsx` gave 1 file, 3 tests passed, 0 failed.
+Before the fix, with only `apps/storefront/src/modules/account/components/company-card/index.tsx` restored from `main`, the same file gave 2 failed, 1 passed, 3 total.
+"shows only the error toast when the update fails" failed because the success toast was called once.
+"sends only the editable company fields" failed because the body included the read-only `approval_settings` field.
+After the rebase onto `main` at `8ff5a78`, the head of this change is `6933a5a`.
+At `6933a5a` the backend has 8 HTTP spec files under `apps/backend/integration-tests/http/`: `admin/quotes/quotes.spec.ts`, `approvals/company-scope.spec.ts`, `approvals/customer-approvals.spec.ts`, `companies/companies.spec.ts`, `companies/company-scope.spec.ts`, `demo-fixtures/demo-fixtures.spec.ts`, `quotes/ownership.spec.ts`, and `quotes/quotes.spec.ts`.
+`approvals/customer-approvals.spec.ts` comes from A3 and calls routes that A4 re-guards with `ensureCustomerOwnsCart` and `ensureCompanyApprover`.
+At `6933a5a`, with Node 22.23.4, pnpm 9.15.0, and a frozen lockfile, root `pnpm test` passed: the backend gave 2 files and 4 tests, and the storefront gave 2 files and 10 tests.
+At `6933a5a`, `pnpm --filter @b2b-starter/backend typecheck` exited with status 0, and `tsc --noEmit -p src/admin/tsconfig.json` exited with status 0.
+The local HTTP and browser suites did not run at `6933a5a`, because the local PostgreSQL container was unavailable.
+The GitHub Actions job "Backend HTTP and browser tests" runs `pnpm test:integration:http` and `pnpm test:e2e` on a PostgreSQL instance for that job only.
+That job is the authoritative result for the final head, and the PR body records its per-suite counts.
+[Ownership middleware](../../../apps/backend/src/api/middlewares/ensure-ownership.ts) · [HTTP suites](../../../apps/backend/integration-tests/http)
 
 | ID · owner | Prerequisite | Task and acceptance evidence |
 | --- | --- | --- |

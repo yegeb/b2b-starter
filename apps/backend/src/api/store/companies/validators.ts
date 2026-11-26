@@ -27,24 +27,52 @@ export const StoreCreateCompany = z
   .strict();
 
 export type StoreUpdateCompanyType = z.infer<typeof StoreUpdateCompany>;
-export const StoreUpdateCompany = z
-  .object({
-    name: z.string().optional(),
-    email: z.string().optional(),
-    currency_code: z.string().optional(),
-    phone: z.string().optional().nullable(),
-    address: z.string().optional().nullable(),
-    city: z.string().optional().nullable(),
-    state: z.string().optional().nullable(),
-    zip: z.string().optional().nullable(),
-    country: z.string().optional().nullable(),
-    logo_url: z.string().optional().nullable(),
-    spending_limit_reset_frequency: z
-      .enum(["never", "daily", "weekly", "monthly", "yearly"])
-      .optional()
-      .nullable(),
-  })
-  .strict();
+/*
+The storefront sends the company as it reads it, including read-only fields.
+Drop those fields, including a body `id`, before validation. The route `id`
+always selects the company. Medusa makes object body schemas strict, so any
+other unknown key, such as `metadata`, is still rejected.
+*/
+const companyReadOnlyFields = [
+  "id",
+  "approval_settings",
+  "employees",
+  "created_at",
+  "updated_at",
+  "deleted_at",
+];
+
+export const StoreUpdateCompany = z.preprocess(
+  (body) => {
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return body;
+    }
+
+    return Object.fromEntries(
+      Object.entries(body).filter(
+        ([key]) => !companyReadOnlyFields.includes(key)
+      )
+    );
+  },
+  z
+    .object({
+      name: z.string().optional(),
+      email: z.string().optional(),
+      currency_code: z.string().optional(),
+      phone: z.string().optional().nullable(),
+      address: z.string().optional().nullable(),
+      city: z.string().optional().nullable(),
+      state: z.string().optional().nullable(),
+      zip: z.string().optional().nullable(),
+      country: z.string().optional().nullable(),
+      logo_url: z.string().optional().nullable(),
+      spending_limit_reset_frequency: z
+        .enum(["never", "daily", "weekly", "monthly", "yearly"])
+        .optional()
+        .nullable(),
+    })
+    .strict()
+);
 
 /* Employee Validators */
 export type StoreGetEmployeeParamsType = z.infer<typeof StoreGetEmployeeParams>;
