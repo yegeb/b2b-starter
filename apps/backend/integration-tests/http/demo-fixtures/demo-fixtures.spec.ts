@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import {
   medusaIntegrationTestRunner,
-  waitSubscribersExecution,
+  TestEventUtils,
 } from "@medusajs/test-utils";
 import {
   ContainerRegistrationKeys,
@@ -71,7 +71,7 @@ medusaIntegrationTestRunner({
       const container = getContainer();
       const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
       const loggedError = jest.spyOn(logger, "error");
-      const productOptionsHandled = waitSubscribersExecution(
+      const productOptionsHandled = TestEventUtils.waitSubscribersExecution(
         "product-option.created",
         container.resolve(Modules.EVENT_BUS)
       );
