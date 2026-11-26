@@ -34,10 +34,11 @@ type Employee = {
   company?: { id: string; name: string; currency_code: string };
 };
 
+// Use a company currency that differs from the draft order's EUR.
 const companyA = {
   id: "comp_a",
   name: "Company A",
-  currency_code: "eur",
+  currency_code: "usd",
 };
 
 const buildCustomer = (employee?: Employee) => ({
@@ -49,8 +50,8 @@ const buildCustomer = (employee?: Employee) => ({
 
 /**
  * Return the quote fields that the Admin API returns for the requested
- * `fields` query: the default quote fields include `*customer`, and a
- * relation such as the employee is present only when it is requested.
+ * `fields` query: the default quote fields include `*customer`, and each
+ * nested relation (employee, then company) is present only when requested.
  */
 const mockQuoteApi = (employee?: Employee) => {
   vi.mocked(useQuote).mockImplementation(((
@@ -58,8 +59,20 @@ const mockQuoteApi = (employee?: Employee) => {
     query?: { fields?: string }
   ) => {
     const requested = (query?.fields ?? "").split(",");
-    const include = (path: string) =>
-      requested.includes(`*${path}`) && employee ? { employee } : {};
+    const include = (customerPath: string) => {
+      if (!employee || !requested.includes(`*${customerPath}.employee`)) {
+        return {};
+      }
+
+      const { company, ...employeeFields } = employee;
+      const withCompany = requested.includes(
+        `*${customerPath}.employee.company`
+      );
+
+      return {
+        employee: withCompany ? { ...employeeFields, company } : employeeFields,
+      };
+    };
 
     const customer = buildCustomer();
 
@@ -69,13 +82,13 @@ const mockQuoteApi = (employee?: Employee) => {
         id: "quo_1",
         status: "pending_merchant",
         draft_order_id: "order_1",
-        customer: { ...customer, ...include("customer.employee") },
+        customer: { ...customer, ...include("customer") },
         draft_order: {
           id: "order_1",
           currency_code: "eur",
           customer: {
             ...customer,
-            ...include("draft_order.customer.employee"),
+            ...include("draft_order.customer"),
           },
         },
       },
@@ -111,12 +124,12 @@ beforeEach(() => {
 });
 
 describe("Admin quote details", () => {
-  it("shows the employee spending limit and links to the company", () => {
+  it("shows the employee spending limit in the company currency and links to the company", () => {
     mockQuoteApi({ id: "emp_buyer", spending_limit: 1000, company: companyA });
 
     renderPage();
 
-    expect(fieldValue("Spending Limit")?.textContent).toBe("€1,000.00");
+    expect(fieldValue("Spending Limit")?.textContent).toBe("$1,000.00");
 
     const companyLink = screen.getByRole("link", { name: "Company A" });
     expect(companyLink.getAttribute("href")).toBe("/companies/comp_a");
