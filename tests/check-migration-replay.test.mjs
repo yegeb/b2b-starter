@@ -38,6 +38,13 @@ test("changed content with the same row count is reported", () => {
   ])
 })
 
+test("ignored tables and identifier lists are not compared", () => {
+  const a = snapshot({ script_migrations: [8, "a"], store: [1, "s"] }, { script_migrations: ["x"] })
+  const b = snapshot({ script_migrations: [8, "b"], store: [1, "s"] }, { script_migrations: ["y"] })
+  assert.equal(diffSnapshots(a, b).length, 2)
+  assert.deepEqual(diffSnapshots(a, b, { ignore: ["script_migrations"] }), [])
+})
+
 test("a table that appears or disappears is reported", () => {
   const a = snapshot({ product: [1, "a"] })
   const b = snapshot({ product: [1, "a"], company: [0, "x"] })

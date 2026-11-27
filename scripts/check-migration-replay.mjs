@@ -7,6 +7,8 @@
 //      initial data seed. Add the demo fixtures. Run `db:migrate` again. Run
 //      the fixture script again. Every table keeps its row count and its row
 //      content, so every identifier survives, and each command exits with 0.
+//      Last, run the seed scripts a second time, as an interrupted run
+//      would, and require that they create nothing.
 //   2. Failure. A migration script that fails makes `db:migrate` exit with a
 //      nonzero status and leaves its record unfinished. The release job relies
 //      on this status to stop the rollout.
@@ -264,6 +266,27 @@ async function replayScenario() {
     scenario,
     "run the fixtures again",
     diffSnapshots(migrated, rerun)
+  )
+
+  // Run both seed scripts again, as after an interrupted run. Medusa runs a
+  // script again when its record in script_migrations is missing or unfinished.
+  // The seed must find its records and create nothing. Only the bookkeeping
+  // table may differ, because the new records have new identifiers.
+  await withClient(databaseUrl, (client) =>
+    client.query(
+      `DELETE FROM script_migrations WHERE script_name IN ('initial-data-seed.ts', 'region-store-policies.ts')`
+    )
+  )
+  const reseed = await medusa("replay-5-seed-again", ["db:migrate"], databaseUrl)
+  expectExit(scenario, "replay-5-seed-again", reseed, 0)
+  if (!/Running migration script .*initial-data-seed\.ts/.test(reseed.output)) {
+    errors.push(`${scenario}: the second seed run did not execute the seed script.`)
+  }
+  const reseeded = await snapshot("replay-5-seed-again", databaseUrl)
+  expectNoDifferences(
+    scenario,
+    "run the seed scripts again",
+    diffSnapshots(rerun, reseeded, { ignore: ["script_migrations"] })
   )
 
   summary.scenarios[scenario].tablesWithRows = tablesWithRows(rerun)

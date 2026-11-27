@@ -83,6 +83,52 @@ jobs:
           path: ${{ runner.temp }}/storefront-build-check
           if-no-files-found: ignore
 
+  migration-replay:
+    name: Migration replay check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      # Server for this job only. The check creates and drops its own databases
+      # on it. The credentials are not secrets.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: replay_check
+          POSTGRES_PASSWORD: replay_check
+          POSTGRES_DB: replay_check
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U replay_check"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+          cache: pnpm
+      - name: Test the replay comparison helpers
+        run: node --test tests/check-migration-replay.test.mjs
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Replay, fail and retry the release migration
+        env:
+          REPLAY_CHECK_DATABASE_URL: postgres://replay_check:replay_check@localhost:5432/replay_check
+          REPLAY_CHECK_OUTPUT_DIR: ${{ runner.temp }}/migration-replay-check
+        run: node scripts/check-migration-replay.mjs
+      - name: Upload migration replay logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-replay-check
+          path: ${{ runner.temp }}/migration-replay-check
+          if-no-files-found: ignore
+
   linux-container-build:
     name: Linux container build networking check
     runs-on: ubuntu-latest

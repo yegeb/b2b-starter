@@ -43,4 +43,40 @@ R2 still requires versioned config and a repeat of these probes on the release i
 | R2 | R1 | Configure role selection, providers and shared secrets. Start two APIs on separate local ports and one worker against the same disposable services. Run each matrix check above, stop and restart one process at a time, and record process-tagged logs and final state. |
 | R3 | A2, R1 | Inspect the [migration scripts](../../../apps/backend/src/migration-scripts). Bootstrap an empty demo store, migrate it again and compare row counts and identifiers. Specify how a failed migration prevents a release rollout. |
 
+## R3 release migration contract
+
+**Command.** The release job runs `medusa db:migrate` once for each release digest.
+The command applies module migrations, syncs links and runs the migration scripts in `apps/backend/src/migration-scripts`.
+The scripts are `initial-data-seed.ts` and `region-store-policies.ts`.
+Medusa records a script in `script_migrations` as finished only after the script ends without an error.
+After a failure or a killed process, the next run starts the whole script again.
+
+**Replay rule.** A repeat run must not change a seeded database.
+Each seed step looks for the record it creates by its natural key and creates it only if the record is missing.
+Natural keys are the sales channel name, the API key title and type, the store name, the region name, the tax region country, the stock location name, the fulfillment set name, the shipping option name, the collection handle, the category name, the option title and the product title.
+A retry after a partial failure then completes the missing steps and creates no second copy of a record. [Issue 119](https://github.com/yegeb/b2b-starter/issues/119)
+
+**Failure rule.** The release job must treat any nonzero exit of `medusa db:migrate` as a failed release.
+The job does not retry on its own, does not ignore the status and does not continue to a later step.
+The rollout order is:
+
+1. Run the migration job with the release digest and wait for it to end.
+2. If the exit status is not 0, stop the release. Do not start or update the API Deployment. Do not start or update the worker Deployment. Do not build or deploy the storefront.
+3. If the exit status is 0, roll out the API and the worker with the same digest.
+
+The running API and worker keep the previous digest, because no step changed them.
+A repair is a new job run. Fix the cause, then run `db:migrate` again.
+The retry finishes the unfinished script and leaves the finished records unchanged.
+K3 must run this sequence in the cluster with a failing job and show that the Deployments keep their previous digest.
+
+**Local evidence.** `node scripts/check-migration-replay.mjs` runs the sequence on disposable databases. It needs `REPLAY_CHECK_DATABASE_URL`, a PostgreSQL connection that can create databases.
+
+| Scenario | Steps | Pass condition |
+| --- | --- | --- |
+| Replay | Bootstrap with `db:migrate`. Add the demo fixtures. Run `db:migrate` again. Run the fixtures again. Run both seed scripts again. | Each command exits with 0. Every table keeps its row count and row content, so product, sales channel, publishable key, company, customer and region identifiers do not change. |
+| Failure | Make the real seed fail halfway. A region that already owns the country `dk` causes the failure. Run `db:migrate`. | The command exits with a nonzero status. The seed record stays unfinished. The check adds no failing migration file to the repository. |
+| Retry | Remove the cause. Run `db:migrate`. Run it once more. | The database matches a database that one run filled. No record exists twice. |
+
+The pull request check `Migration replay check` runs this script on a PostgreSQL service container.
+
 **Handoff.** Give 03 the worker subscription and retry behavior. Give 07 the Redis persistence, memory and connection requirements. Give 08 the role variables, start commands, health checks and migration sequence.

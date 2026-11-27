@@ -79,14 +79,16 @@ export async function takeSnapshot(client) {
 /**
  * Compares two snapshots and lists every difference. An empty list means that
  * no table changed its row count or content and that no identifier changed.
+ * `ignore` names tables and identifier lists that are not compared.
  */
-export function diffSnapshots(before, after) {
+export function diffSnapshots(before, after, { ignore = [] } = {}) {
   const differences = []
   const names = new Set([
     ...Object.keys(before.tables),
     ...Object.keys(after.tables),
   ])
   for (const name of [...names].sort()) {
+    if (ignore.includes(name)) continue
     const a = before.tables[name]
     const b = after.tables[name]
     if (!a || !b) {
@@ -103,6 +105,7 @@ export function diffSnapshots(before, after) {
     ...Object.keys(after.identifiers),
   ])
   for (const key of [...keys].sort()) {
+    if (ignore.includes(key)) continue
     const a = JSON.stringify(before.identifiers[key] ?? null)
     const b = JSON.stringify(after.identifiers[key] ?? null)
     if (a !== b) {
