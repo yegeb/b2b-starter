@@ -86,6 +86,10 @@ Both engines use the class name `WorkflowsModuleService`, so the report reads th
 
 - `redis-config.unit.spec.ts` checks the option paths, the unset and blank cases, and that `medusa-config.ts` selects the in-process providers without `REDIS_URL`. The `Run the backend unit tests` step in the baseline job runs it.
 - `integration-tests/redis/redis-providers.spec.ts` boots the application with `REDIS_URL` set. It asserts the provider report, a session under the `sess:` prefix with a ten-hour expiry, an event delivered through the `events-queue` counter, a workflow checkpoint that exists in Redis until its async step finishes, and a second lock owner that Redis rejects. The `Backend Redis provider tests` job in `pr-checks.yml` runs it against Redis and PostgreSQL service containers with `pnpm test:integration:redis`.
+- The `Inspect providers with REDIS_URL set` step migrates a disposable database and runs `inspect-runtime-providers.ts`.
+  It fails unless the single `RUNTIME_PROVIDERS` line names the Redis session store, event bus, workflow engine storage and locking provider.
+- The `Inspect providers with REDIS_URL unset` step does the same and fails unless every provider is the in-process default.
+- The job uses a trust-auth PostgreSQL, so no database password is committed.
 - The suite refuses to start without `REDIS_URL`. A local run with the original config, which has no Redis settings, and a reachable disposable Redis failed all five tests. The tests therefore fail when the application keeps the in-process providers.
 
 **Not yet proved.** The tests prove selection and single-process behavior. The two-API and worker proof, restart behavior and connection counts belong to R2. Redis persistence and memory limits belong to 07.

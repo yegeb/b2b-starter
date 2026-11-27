@@ -1,5 +1,7 @@
 if (process.env.TEST_TYPE === "integration:http" || process.env.TEST_TYPE === "integration:redis") {
-  const required = ["DB_HOST", "DB_PORT", "DB_USERNAME", "DB_PASSWORD"];
+  // The Redis suite may run against a trust-auth disposable PostgreSQL with no password.
+  const required = ["DB_HOST", "DB_PORT", "DB_USERNAME"];
+  if (process.env.TEST_TYPE === "integration:http") required.push("DB_PASSWORD");
   const missing = required.filter((name) => !process.env[name]);
   if (missing.length) {
     // Jest configuration errors do not map to HTTP responses.

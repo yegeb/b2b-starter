@@ -119,12 +119,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
-      # Disposable services for this job only; neither one holds a secret.
+      # Disposable services for this job only; PostgreSQL uses trust auth, so no password exists.
       postgres:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: medusa_redis
         ports:
           - 5432:5432
@@ -158,9 +158,45 @@ jobs:
           DB_HOST: localhost
           DB_PORT: '5432'
           DB_USERNAME: postgres
-          DB_PASSWORD: postgres
           REDIS_URL: redis://localhost:6379
         run: pnpm test:integration:redis
+
+      - name: Inspect providers with REDIS_URL set
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgres://postgres@localhost:5432/medusa_inspect_redis
+          REDIS_URL: redis://localhost:6379
+        run: |
+          createdb -h localhost -U postgres medusa_inspect_redis
+          pnpm medusa db:migrate
+          pnpm medusa exec ./src/scripts/inspect-runtime-providers.ts | tee "$RUNNER_TEMP/redis.log"
+          node -e '
+            const fs = require("fs");
+            const lines = fs.readFileSync(process.argv[1], "utf8").split("\n").filter((l) => l.startsWith("RUNTIME_PROVIDERS "));
+            if (lines.length !== 1) { console.error("expected one RUNTIME_PROVIDERS line, got " + lines.length); process.exit(1); }
+            const r = JSON.parse(lines[0].slice("RUNTIME_PROVIDERS ".length));
+            const want = {sessionStore:"redis",eventBus:["@medusajs/medusa/event-bus-redis","RedisEventBusService"],engine:["@medusajs/medusa/workflow-engine-redis","RedisDistributedTransactionStorage"],locking:["locking-redis",["@medusajs/medusa/locking-redis"]]};
+            const got = { sessionStore: r.sessionStore, eventBus: [r.eventBus.module, r.eventBus.service], engine: [r.workflowEngine.module, r.workflowEngine.storage], locking: [r.locking.defaultProvider, r.locking.providers.map((p) => p.resolve)] };
+            if (JSON.stringify(got) !== JSON.stringify(want)) { console.error("provider mismatch", JSON.stringify(got), JSON.stringify(want)); process.exit(1); }
+          ' "$RUNNER_TEMP/redis.log"
+      - name: Inspect providers with REDIS_URL unset
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgres://postgres@localhost:5432/medusa_inspect_memory
+        run: |
+          unset REDIS_URL
+          createdb -h localhost -U postgres medusa_inspect_memory
+          pnpm medusa db:migrate
+          pnpm medusa exec ./src/scripts/inspect-runtime-providers.ts | tee "$RUNNER_TEMP/memory.log"
+          node -e '
+            const fs = require("fs");
+            const lines = fs.readFileSync(process.argv[1], "utf8").split("\n").filter((l) => l.startsWith("RUNTIME_PROVIDERS "));
+            if (lines.length !== 1) { console.error("expected one RUNTIME_PROVIDERS line, got " + lines.length); process.exit(1); }
+            const r = JSON.parse(lines[0].slice("RUNTIME_PROVIDERS ".length));
+            const want = {sessionStore:"memory",eventBus:["@medusajs/medusa/event-bus-local","LocalEventBusService"],engine:["@medusajs/medusa/workflow-engine-inmemory","InMemoryDistributedTransactionStorage"],locking:["in-memory",[]]};
+            const got = { sessionStore: r.sessionStore, eventBus: [r.eventBus.module, r.eventBus.service], engine: [r.workflowEngine.module, r.workflowEngine.storage], locking: [r.locking.defaultProvider, r.locking.providers.map((p) => p.resolve)] };
+            if (JSON.stringify(got) !== JSON.stringify(want)) { console.error("provider mismatch", JSON.stringify(got), JSON.stringify(want)); process.exit(1); }
+          ' "$RUNNER_TEMP/memory.log"
 
   integration:
     name: Backend HTTP and browser tests
