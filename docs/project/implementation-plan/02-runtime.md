@@ -58,6 +58,12 @@ Each concern needs an explicit setting in the application config.
 | Workflow engine | `modules.workflows` with `options.redis.redisUrl` | `@medusajs/medusa/workflow-engine-redis`. Queues are `medusa-workflows` and `medusa-workflows-jobs`. | `@medusajs/medusa/workflow-engine-inmemory`. |
 | Locks | `modules.locking` with `options.providers[]` | `@medusajs/medusa/locking` with provider `@medusajs/medusa/locking-redis`, `id: "locking-redis"`, `is_default: true` and `options.redisUrl`. Key prefix is `medusa_lock:`. | The in-memory provider, which locks inside one process only. |
 
+**Event retry policy.** The module default is one attempt and `removeOnComplete: true`.
+The R1 config sets three attempts, exponential backoff from 1 second, and a failed-job history bounded by age and count.
+A retry re-runs every subscriber of that event, so subscribers added in milestone 03 must be idempotent.
+No subscriber exists in R1, so no side effect is repeated today.
+Recovery from the durable intent after the attempts run out is left to milestone 03.
+
 **Decision for an unset `REDIS_URL`.** The config keeps every Medusa default. One backend process then runs with in-memory sessions, events, workflows and locks. Local development, the HTTP integration suites and the browser tests keep working without Redis.
 An empty or blank value counts as unset.
 Every deployment that runs more than one backend process must set `REDIS_URL`.
