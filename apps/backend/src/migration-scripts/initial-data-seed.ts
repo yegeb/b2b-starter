@@ -19,6 +19,7 @@ import {
   createStockLocationsWorkflow,
   createStoresWorkflow,
   createTaxRegionsWorkflow,
+  deleteProductsWorkflow,
   linkSalesChannelsToApiKeyWorkflow,
   linkSalesChannelsToStockLocationWorkflow,
 } from "@medusajs/medusa/core-flows";
@@ -475,11 +476,38 @@ export default async function initial_data_seed({
 
   type ProductInput = CreateProductsWorkflowInput["products"][number];
 
-  /** Creates the product unless a product with its title exists. */
+  /**
+   * Creates the product unless a complete product with its title exists.
+   *
+   * The create workflow writes the product row before it links the sales
+   * channel and creates the variants. A killed process can therefore leave a
+   * product without them. Such a product is removed and created again.
+   */
   const ensureProduct = async (product: ProductInput) => {
-    const [existing] = await find("product", { title: product.title });
+    const [existing] = await find<{
+      id: string;
+      variants?: { id: string }[];
+      sales_channels?: { id: string }[];
+    }>("product", { title: product.title }, [
+      "id",
+      "variants.id",
+      "sales_channels.id",
+    ]);
     if (existing) {
-      return;
+      const isComplete =
+        existing.variants?.length === (product.variants?.length ?? 0) &&
+        (product.sales_channels ?? []).every((channel) =>
+          existing.sales_channels?.some(({ id }) => id === channel.id)
+        );
+      if (isComplete) {
+        return;
+      }
+      logger.warn(
+        `Product "${product.title}" is incomplete after an interrupted run. Creating it again.`
+      );
+      await deleteProductsWorkflow(container).run({
+        input: { ids: [existing.id] },
+      });
     }
     await createProductsWorkflow(container).run({
       input: { products: [product] },

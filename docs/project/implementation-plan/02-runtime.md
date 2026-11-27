@@ -53,6 +53,7 @@ After a failure or a killed process, the next run starts the whole script again.
 
 **Replay rule.** A repeat run must not change a seeded database.
 Each seed step looks for the record it creates by its natural key and creates it only if the record is missing.
+The product step also checks that a product has its variants and its sales channel. It replaces a product that an interrupted run left incomplete.
 Natural keys are the sales channel name, the API key title and type, the store name, the region name, the tax region country, the stock location name, the fulfillment set name, the shipping option name, the collection handle, the category name, the option title and the product title.
 A retry after a partial failure then completes the missing steps and creates no second copy of a record. [Issue 119](https://github.com/yegeb/b2b-starter/issues/119)
 
@@ -76,6 +77,7 @@ K3 must run this sequence in the cluster with a failing job and show that the De
 | Replay | Bootstrap with `db:migrate`. Add the demo fixtures. Run `db:migrate` again. Run the fixtures again. Run both seed scripts again. | Each command exits with 0. Every table keeps its row count and row content, so product, sales channel, publishable key, company, customer and region identifiers do not change. |
 | Failure | Make the real seed fail halfway. A region that already owns the country `dk` causes the failure. Run `db:migrate`. | The command exits with a nonzero status. The seed record stays unfinished. The check adds no failing migration file to the repository. |
 | Retry | Remove the cause. Run `db:migrate`. Run it once more. | The database matches a database that one run filled. No record exists twice. |
+| Interrupted product | Remove the sales channel link of one product, as a process kill during product creation does. Mark the seed scripts as not run. Run `db:migrate`. | The command exits with 0. The same products exist, and each has its variants and its sales channel. The seed replaces the incomplete product. |
 
 The pull request check `Migration replay check` runs this script on a PostgreSQL service container.
 

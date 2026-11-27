@@ -1,7 +1,7 @@
 // Migration replay check (CMPE 48A task R3).
 //
 // The check runs the release migration command, `medusa db:migrate`, against
-// disposable databases and proves three things:
+// disposable databases and proves four things:
 //
 //   1. Replay. Bootstrap an empty database with `db:migrate`, which runs the
 //      initial data seed. Add the demo fixtures. Run `db:migrate` again. Run
@@ -15,6 +15,8 @@
 //   3. Retry. After the cause of the failure is removed, `db:migrate` finishes
 //      the work and the database matches a database that the seed filled in a
 //      single run. Nothing is duplicated.
+//   4. Interrupted product. A product that lost its sales channel link, as
+//      after a process kill during product creation, is made complete again.
 //
 // The failure in 2 is not a test migration. The check makes the real initial
 // data seed fail halfway, because another region already owns the country
@@ -363,6 +365,57 @@ async function retryScenario(reference) {
   summary.scenarios[scenario].identifiers = stable.identifiers
 }
 
+// Scenario 4: a product that an interrupted run left without its sales
+// channel link. The create workflow writes the product row before it links
+// the channel, so a killed process leaves such a product. The seed must make
+// the product complete and must not keep the incomplete copy.
+async function partialProductScenario() {
+  const scenario = "partial-product"
+  summary.scenarios[scenario] = { exits: {}, comparisons: {} }
+  const databaseUrl = await createDatabase(scenario)
+
+  const bootstrap = await medusa("partial-1-bootstrap", ["db:migrate"], databaseUrl)
+  if (!expectExit(scenario, "partial-1-bootstrap", bootstrap, 0)) return
+
+  const liveProducts = `SELECT p.id, p.title,
+      (SELECT count(*) FROM product_variant v WHERE v.product_id = p.id AND v.deleted_at IS NULL)::int AS variants,
+      (SELECT count(*) FROM product_sales_channel c WHERE c.product_id = p.id AND c.deleted_at IS NULL)::int AS channels
+    FROM product p WHERE p.deleted_at IS NULL ORDER BY p.title`
+  const before = await withClient(databaseUrl, async (client) => {
+    const { rows } = await client.query(liveProducts)
+    return rows
+  })
+  if (!before.length || before.some((row) => row.channels === 0)) {
+    errors.push(`${scenario}: the bootstrap must create products with a sales channel.`)
+    return
+  }
+  const broken = before[0]
+
+  await withClient(databaseUrl, async (client) => {
+    await client.query(`DELETE FROM product_sales_channel WHERE product_id = $1`, [broken.id])
+    await client.query(
+      `DELETE FROM script_migrations WHERE script_name IN ('initial-data-seed.ts', 'region-store-policies.ts')`
+    )
+  })
+
+  const repaired = await medusa("partial-2-migrate", ["db:migrate"], databaseUrl)
+  expectExit(scenario, "partial-2-migrate", repaired, 0)
+  const after = await withClient(databaseUrl, async (client) => {
+    const { rows } = await client.query(liveProducts)
+    return rows
+  })
+
+  const shape = (rows) => rows.map(({ title, variants, channels }) => ({ title, variants, channels }))
+  const differences = []
+  if (JSON.stringify(shape(before)) !== JSON.stringify(shape(after))) {
+    differences.push(
+      `The live products differ. Before: ${JSON.stringify(shape(before))}. After: ${JSON.stringify(shape(after))}.`
+    )
+  }
+  summary.scenarios[scenario].comparisons["interrupted product is made complete"] = differences
+  for (const difference of differences) errors.push(`${scenario}: ${difference}`)
+}
+
 let cleanup
 
 // Stop every child process and drop the databases the check created. Run it
@@ -415,6 +468,7 @@ for (const [signal, status] of [
 try {
   const reference = await replayScenario()
   await retryScenario(reference)
+  await partialProductScenario()
 } catch (error) {
   errors.push(error instanceof Error ? error.message : String(error))
 } finally {
