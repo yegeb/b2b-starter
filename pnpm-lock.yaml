@@ -108,6 +108,9 @@ importers:
       '@types/react-dom':
         specifier: 19.0.5
         version: 19.0.5(@types/react@19.0.5)
+      ioredis:
+        specifier: 5.11.1
+        version: 5.11.1
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@20.19.27)(ts-node@10.9.2(@swc/core@1.15.6(@swc/helpers@0.5.23))(@types/node@20.19.27)(typescript@5.9.3))

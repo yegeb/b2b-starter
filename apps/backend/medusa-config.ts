@@ -1,9 +1,14 @@
 import { QUOTE_MODULE } from "./src/modules/quote";
 import { APPROVAL_MODULE } from "./src/modules/approval";
 import { COMPANY_MODULE } from "./src/modules/company";
+import { buildRedisConfig } from "./src/utils/redis-config";
 import { loadEnv, defineConfig } from "@medusajs/framework/utils";
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd());
+
+// Sessions, event bus, workflow engine and locks use Redis only when REDIS_URL
+// is set. See src/utils/redis-config.ts.
+const redis = buildRedisConfig();
 
 module.exports = defineConfig({
   projectConfig: {
@@ -15,8 +20,10 @@ module.exports = defineConfig({
       jwtSecret: process.env.JWT_SECRET,
       cookieSecret: process.env.COOKIE_SECRET,
     },
+    ...redis.projectConfig,
   },
   modules: {
+    ...redis.modules,
     [COMPANY_MODULE]: {
       resolve: "./modules/company",
     },

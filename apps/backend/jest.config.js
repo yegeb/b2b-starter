@@ -1,11 +1,17 @@
-if (process.env.TEST_TYPE === "integration:http") {
+if (process.env.TEST_TYPE === "integration:http" || process.env.TEST_TYPE === "integration:redis") {
   const required = ["DB_HOST", "DB_PORT", "DB_USERNAME", "DB_PASSWORD"];
   const missing = required.filter((name) => !process.env[name]);
   if (missing.length) {
     // Jest configuration errors do not map to HTTP responses.
     // eslint-disable-next-line @medusajs/use-medusa-error-not-generic-error
-    throw new Error(`HTTP integration tests require explicit disposable database settings: ${missing.join(", ")}`);
+    throw new Error(`Integration tests require explicit disposable database settings: ${missing.join(", ")}`);
   }
+}
+
+if (process.env.TEST_TYPE === "integration:redis" && !process.env.REDIS_URL) {
+  // The Redis suite proves the Redis providers, so it must not run without Redis.
+  // eslint-disable-next-line @medusajs/use-medusa-error-not-generic-error
+  throw new Error("Redis integration tests require REDIS_URL to point at a disposable Redis instance");
 }
 
 const { loadEnv } = require("@medusajs/framework/utils");
@@ -27,11 +33,15 @@ module.exports = {
   testEnvironment: "node",
   moduleFileExtensions: ["js", "ts", "json"],
   modulePathIgnorePatterns: ["dist/"],
+  // The build output holds compiled copies of the specs.
+  testPathIgnorePatterns: ["/node_modules/", "/.medusa/"],
   setupFiles: ["./integration-tests/setup.js"],
 };
 
 if (process.env.TEST_TYPE === "integration:http") {
   module.exports.testMatch = ["**/integration-tests/http/**/*.spec.[jt]s"];
+} else if (process.env.TEST_TYPE === "integration:redis") {
+  module.exports.testMatch = ["**/integration-tests/redis/**/*.spec.[jt]s"];
 } else if (process.env.TEST_TYPE === "integration:modules") {
   module.exports.testMatch = ["**/src/modules/*/__tests__/**/*.[jt]s"];
 } else if (process.env.TEST_TYPE === "unit") {
