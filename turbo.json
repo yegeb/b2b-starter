@@ -26,6 +26,10 @@
       "passThroughEnv": ["DB_HOST", "DB_PORT", "DB_USERNAME", "DB_PASSWORD", "JWT_SECRET", "COOKIE_SECRET"],
       "cache": false
     },
+    "test:integration:redis": {
+      "passThroughEnv": ["DB_HOST", "DB_PORT", "DB_USERNAME", "DB_PASSWORD", "REDIS_URL", "JWT_SECRET", "COOKIE_SECRET"],
+      "cache": false
+    },
     "test:integration:modules": {
       "cache": false
     },

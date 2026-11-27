@@ -52,7 +52,8 @@ Run from the repo root unless noted. Root scripts fan out through Turborepo.
 - Node `>=22.23.4` is enforced (`engine-strict=true` in `.npmrc`).
 - HTTP integration tests need a reachable PostgreSQL; `@medusajs/test-utils` creates a temporary database per run.
 - `pnpm test` runs the Vitest UI tests: `apps/storefront/src/**/*.test.tsx` and `apps/backend/src/admin/**/*.test.tsx`. It does not run the HTTP integration suites.
-- Do not rely on `pnpm test:unit` or `pnpm test:integration:modules`: there are no `*.unit.spec.ts` or `src/modules/*/__tests__` files, so they exit with "No tests found".
+- `pnpm test:unit` runs `apps/backend/src/**/__tests__/*.unit.spec.ts` (the Redis config test). Do not rely on `pnpm test:integration:modules`: there are no `src/modules/*/__tests__` files, so it exits with "No tests found".
+- `pnpm test:integration:redis` needs `DB_*` variables and `REDIS_URL` for a disposable PostgreSQL and Redis. CI runs it in the `Backend Redis provider tests` job.
 
 ## Directory Structure
 

@@ -157,7 +157,7 @@ The repo is a pnpm workspace orchestrated by [Turborepo](https://turborepo.com).
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
-| `REDIS_URL` | Redis connection string (optional) |
+| `REDIS_URL` | Redis connection string. Optional for one process: unset or empty keeps in-memory sessions, events, workflows and locks. When set, all four use Redis. Required when you run more than one backend process. |
 | `JWT_SECRET` | Secret used to sign JWT tokens |
 | `COOKIE_SECRET` | Secret used to sign session cookies |
 | `STORE_CORS` / `ADMIN_CORS` / `AUTH_CORS` | Allowed origins for the store, admin, and auth APIs |

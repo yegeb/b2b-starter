@@ -10,6 +10,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:integration:http": "turbo run test:integration:http",
+    "test:integration:redis": "turbo run test:integration:redis",
     "test:integration:modules": "turbo run test:integration:modules",
     "test:unit": "turbo run test:unit",
     "test:e2e": "turbo run test:e2e",

@@ -43,4 +43,55 @@ R2 still requires versioned config and a repeat of these probes on the release i
 | R2 | R1 | Configure role selection, providers and shared secrets. Start two APIs on separate local ports and one worker against the same disposable services. Run each matrix check above, stop and restart one process at a time, and record process-tagged logs and final state. |
 | R3 | A2, R1 | Inspect the [migration scripts](../../../apps/backend/src/migration-scripts). Bootstrap an empty demo store, migrate it again and compare row counts and identifiers. Specify how a failed migration prevents a release rollout. |
 
+## R1 result: Redis provider configuration
+
+**Observed in source, Medusa 2.22.7, 27 November 2026.** The installed `@medusajs/framework`, `event-bus-redis`, `workflow-engine-redis`, `locking` and `locking-redis` packages confirm the configuration table above.
+The `REDIS_URL` environment variable alone changes nothing on a self-hosted install.
+Each concern needs an explicit setting in the application config.
+[`redis-config.ts`](../../../apps/backend/src/utils/redis-config.ts) builds these settings from `REDIS_URL`, and [`medusa-config.ts`](../../../apps/backend/medusa-config.ts) spreads them into `defineConfig`.
+
+| Concern | Option path | Module or package | Default without the setting |
+| --- | --- | --- | --- |
+| Sessions | `projectConfig.redisUrl` | `connect-redis` inside `@medusajs/framework`. Key prefix is `redisPrefix` plus `sess:`. Cookie lifetime is ten hours. | Memory session store. |
+| Event bus | `modules.event_bus` with `options.redisUrl` | `@medusajs/medusa/event-bus-redis`. Queue is `events-queue`. | `@medusajs/medusa/event-bus-local`. |
+| Event retries | `options.jobOptions` | The module default is `attempts: 1` and `removeOnComplete: true`. The config sets three attempts, exponential backoff from 1 second, and a bounded failed-job history. | One attempt, so a failed subscriber is logged and not retried. |
+| Workflow engine | `modules.workflows` with `options.redis.redisUrl` | `@medusajs/medusa/workflow-engine-redis`. Queues are `medusa-workflows` and `medusa-workflows-jobs`. | `@medusajs/medusa/workflow-engine-inmemory`. |
+| Locks | `modules.locking` with `options.providers[]` | `@medusajs/medusa/locking` with provider `@medusajs/medusa/locking-redis`, `id: "locking-redis"`, `is_default: true` and `options.redisUrl`. Key prefix is `medusa_lock:`. | The in-memory provider, which locks inside one process only. |
+
+**Event retry policy.** The module default is one attempt and `removeOnComplete: true`.
+The R1 config sets three attempts, exponential backoff from 1 second, and a failed-job history bounded by age and count.
+A retry re-runs every subscriber of that event, so subscribers added in milestone 03 must be idempotent.
+No subscriber exists in R1, so no side effect is repeated today.
+Recovery from the durable intent after the attempts run out is left to milestone 03.
+
+**Decision for an unset `REDIS_URL`.** The config keeps every Medusa default. One backend process then runs with in-memory sessions, events, workflows and locks. Local development, the HTTP integration suites and the browser tests keep working without Redis.
+An empty or blank value counts as unset.
+Every deployment that runs more than one backend process must set `REDIS_URL`.
+The environment template now leaves `REDIS_URL` empty, because a template value of `redis://localhost:6379` made a plain copy of the template look configured while the config ignored it.
+
+**Role selection.** Medusa reads `MEDUSA_WORKER_MODE` itself and passes the value to every module.
+The R1 config sets no role. R2 can add `server` and `worker` launch settings without changing the provider settings.
+
+**Effective provider report.** [`inspect-runtime-providers.ts`](../../../apps/backend/src/scripts/inspect-runtime-providers.ts) prints one `RUNTIME_PROVIDERS` JSON line. It holds package names, class names and provider IDs only. It never reads a connection string. Run it with `pnpm medusa exec ./src/scripts/inspect-runtime-providers.ts`.
+
+| Run | Sessions | Event bus | Workflow engine | Locking default |
+| --- | --- | --- | --- | --- |
+| `REDIS_URL` set | `redis` | `RedisEventBusService` | `WorkflowsModuleService` with `RedisDistributedTransactionStorage` | `locking-redis` |
+| `REDIS_URL` unset | `memory` | `LocalEventBusService` | `WorkflowsModuleService` with `InMemoryDistributedTransactionStorage` | `in-memory` |
+
+Both rows come from the running application on a disposable PostgreSQL and a disposable Redis, started from the built backend, on 27 November 2026.
+Both engines use the class name `WorkflowsModuleService`, so the report reads the storage class to tell them apart.
+
+**Automated proof.**
+
+- `redis-config.unit.spec.ts` checks the option paths, the unset and blank cases, and that `medusa-config.ts` selects the in-process providers without `REDIS_URL`. The `Run the backend unit tests` step in the baseline job runs it.
+- `integration-tests/redis/redis-providers.spec.ts` boots the application with `REDIS_URL` set. It asserts the provider report, a session under the `sess:` prefix with a ten-hour expiry, an event delivered through the `events-queue` counter, a workflow checkpoint that exists in Redis until its async step finishes, and a second lock owner that Redis rejects. The `Backend Redis provider tests` job in `pr-checks.yml` runs it against Redis and PostgreSQL service containers with `pnpm test:integration:redis`.
+- The `Inspect providers with REDIS_URL set` step migrates a disposable database and runs `inspect-runtime-providers.ts`.
+  It fails unless the single `RUNTIME_PROVIDERS` line names the Redis session store, event bus, workflow engine storage and locking provider.
+- The `Inspect providers with REDIS_URL unset` step does the same and fails unless every provider is the in-process default.
+- The job uses a trust-auth PostgreSQL, so no database password is committed.
+- The suite refuses to start without `REDIS_URL`. A local run with the original config, which has no Redis settings, and a reachable disposable Redis failed all five tests. The tests therefore fail when the application keeps the in-process providers.
+
+**Not yet proved.** The tests prove selection and single-process behavior. The two-API and worker proof, restart behavior and connection counts belong to R2. Redis persistence and memory limits belong to 07.
+
 **Handoff.** Give 03 the worker subscription and retry behavior. Give 07 the Redis persistence, memory and connection requirements. Give 08 the role variables, start commands, health checks and migration sequence.
